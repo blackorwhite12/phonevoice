@@ -28,7 +28,7 @@ jobs:
           PYTHONIOENCODING: utf-8
       - name: 打包 exe
         run: |
-          pyinstaller --noconfirm --windowed --name "PhoneVoice" `
+          pyinstaller --noconfirm --windowed --onefile --name "PhoneVoice" `
             --icon app.ico `
             --add-data "index.html;." `
             --add-data "qr.html;." `
