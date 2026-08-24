@@ -13,6 +13,13 @@ from PIL import Image, ImageDraw
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Windows 控制台默认 GBK，中文输出会崩，统一转 UTF-8
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def draw_icon(size: int) -> Image.Image:
     """深蓝圆角方块 + 白色声波竖条，模拟“语音输入”。"""

@@ -17,8 +17,12 @@ jobs:
           python-version: "3.12"
       - name: 安装依赖
         run: pip install -r requirements-win.txt pyinstaller
+        env:
+          PYTHONIOENCODING: utf-8
       - name: 生成图标
         run: python make_icons.py
+        env:
+          PYTHONIOENCODING: utf-8
       - name: 打包 exe
         run: |
           pyinstaller --noconfirm --windowed --name "语音输入电脑" `
@@ -71,6 +75,7 @@ jobs:
   build-macos-x64:
     name: macOS Intel
     runs-on: macos-13
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -101,12 +106,17 @@ jobs:
 
   release:
     name: 发布 Release
-    needs: [build-windows, build-macos-arm64, build-macos-x64]
+    needs: [build-windows, build-macos-arm64]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: windows-x64
+          path: artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-arm64
           path: artifacts
       - name: 列出产物
         run: find artifacts -type f
