@@ -1,0 +1,12 @@
+.venv/
+legacy-v1/.venv/
+__pycache__/
+qr.png
+dist/
+build/
+*.spec
+.DS_Store
+*.zip
+语音输入电脑-v1.1/
+AppIcon.iconset/
+app.ico

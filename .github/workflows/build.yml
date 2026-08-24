@@ -1,0 +1,115 @@
+name: Build Releases
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: pip install -r requirements-win.txt pyinstaller
+      - name: 生成图标
+        run: python make_icons.py
+      - name: 打包 exe
+        run: |
+          pyinstaller --noconfirm --windowed --name "语音输入电脑" `
+            --icon app.ico `
+            --add-data "index.html;." `
+            --add-data "qr.html;." `
+            --add-data "manifest.json;." `
+            --add-data "icon-192.png;." `
+            --add-data "icon-512.png;." `
+            --add-data "apple-touch-icon.png;." `
+            app.py
+      - name: 压缩为 zip
+        run: powershell Compress-Archive -Path "dist\语音输入电脑.exe" -DestinationPath "语音输入电脑-windows-x64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: 语音输入电脑-windows-x64.zip
+
+  build-macos-arm64:
+    name: macOS Apple 芯片
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: pip install -r requirements.txt pyinstaller
+      - name: 生成图标
+        run: python make_icons.py
+      - name: 打包 app
+        run: |
+          pyinstaller --noconfirm --windowed --name "语音输入电脑" \
+            --osx-bundle-identifier com.phonevoice.app \
+            --icon AppIcon.icns \
+            --add-data "index.html:." \
+            --add-data "qr.html:." \
+            --add-data "manifest.json:." \
+            --add-data "icon-192.png:." \
+            --add-data "icon-512.png:." \
+            --add-data "apple-touch-icon.png:." \
+            app.py
+      - name: 压缩为 zip
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "语音输入电脑-macos-arm64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: 语音输入电脑-macos-arm64.zip
+
+  build-macos-x64:
+    name: macOS Intel
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: pip install -r requirements.txt pyinstaller
+      - name: 生成图标
+        run: python make_icons.py
+      - name: 打包 app
+        run: |
+          pyinstaller --noconfirm --windowed --name "语音输入电脑" \
+            --osx-bundle-identifier com.phonevoice.app \
+            --icon AppIcon.icns \
+            --add-data "index.html:." \
+            --add-data "qr.html:." \
+            --add-data "manifest.json:." \
+            --add-data "icon-192.png:." \
+            --add-data "icon-512.png:." \
+            --add-data "apple-touch-icon.png:." \
+            app.py
+      - name: 压缩为 zip
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "语音输入电脑-macos-x64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64
+          path: 语音输入电脑-macos-x64.zip
+
+  release:
+    name: 发布 Release
+    needs: [build-windows, build-macos-arm64, build-macos-x64]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: 列出产物
+        run: find artifacts -type f
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*

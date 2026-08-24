@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>手机语音输入 → Mac</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; min-height: 100vh;
+    font-family: -apple-system, "PingFang SC", sans-serif;
+    background: #0f1115; color: #e6e6e6;
+    display: flex; flex-direction: column;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .status { font-size: 13px; color: #7ee787; margin-bottom: 12px; }
+  textarea {
+    flex: 1; min-height: 200px; font-size: 18px; line-height: 1.5;
+    background: #1b1f27; color: #fff; border: 1px solid #333;
+    border-radius: 12px; padding: 14px; resize: none; outline: none;
+  }
+  textarea:focus { border-color: #58a6ff; }
+  button {
+    margin-top: 12px; padding: 16px; font-size: 18px; font-weight: 600;
+    background: #238636; color: #fff; border: 0; border-radius: 12px;
+  }
+  button:disabled { opacity: .6; }
+  .opt { margin-top: 12px; font-size: 14px; color: #9da7b3; display: flex; align-items: center; gap: 8px; }
+  #msg { margin-top: 10px; font-size: 14px; color: #f0b429; min-height: 20px; }
+</style>
+</head>
+<body>
+<h1>手机语音输入 → Mac</h1>
+<div class="status">● 已连接电脑，点下方输入框直接说话</div>
+<textarea id="input" placeholder="点这里，用手机输入法语音说话，说完自动发送到电脑" autofocus></textarea>
+<button id="send">发送到电脑</button>
+<label class="opt"><input type="checkbox" id="auto" checked> 语音说完自动发送（打字时建议关掉）</label>
+<div id="msg"></div>
+<script>
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const auto = document.getElementById('auto');
+const msg = document.getElementById('msg');
+let timer = null;
+
+function sendText() {
+  const text = input.value.trim();
+  if (!text) return;
+  sendBtn.disabled = true;
+  fetch('/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text: text})
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      if (d.method === 'clipboard') {
+        msg.textContent = '模拟输入失败（Mac 端缺少辅助功能权限），文字已在剪贴板，可先手动 Cmd+V；授权方法见 README';
+      } else {
+        msg.textContent = '已发送到电脑 ✓';
+      }
+      input.value = '';
+    } else {
+      msg.textContent = '发送失败：' + (d.error || '未知错误');
+    }
+  }).catch(() => {
+    msg.textContent = '发送失败，请检查电脑端服务是否在运行';
+  }).finally(() => {
+    sendBtn.disabled = false;
+    input.focus();
+  });
+}
+
+sendBtn.addEventListener('click', sendText);
+
+// 语音/输入法确认结束（compositionend）后，稍等片刻自动发送
+input.addEventListener('compositionend', () => {
+  clearTimeout(timer);
+  timer = setTimeout(() => { if (auto.checked) sendText(); }, 700);
+});
+
+// 兜底：英文等不触发 compositionend 的输入法，用停顿检测
+input.addEventListener('input', () => {
+  if (!auto.checked) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    if (input.value.trim()) sendText();
+  }, 1200);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) input.focus();
+});
+input.focus();
+</script>
+</body>
+</html>

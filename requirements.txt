@@ -1,0 +1,5 @@
+qrcode
+pillow
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz
+pyobjc-framework-ApplicationServices
