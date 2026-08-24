@@ -69,15 +69,11 @@ class App:
         f = tk.Frame(self.root, bg=BG, padx=34, pady=24)
         f.pack(fill="both", expand=True)
 
-        # 顶部：名称 + 弯箭头
-        head = tk.Frame(f, bg=BG)
-        head.pack(fill="x")
-        tk.Label(head, text="🎤 手机语音输入", bg=BG, fg=FG,
-                 font=(FONT, 22, "bold")).pack(anchor="w")
-        tk.Label(head, text="💻 电脑同步显示", bg=BG, fg=FG,
-                 font=(FONT, 22, "bold")).pack(anchor="w", pady=(2, 0))
-        tk.Label(head, text="⤵", bg=BG, fg="#ff8fa3", font=(FONT, 20, "bold")
-                 ).place(relx=1.0, x=-8, y=6)
+        # 顶部：名称（居中、放大）
+        tk.Label(f, text="手机语音输入", bg=BG, fg=FG,
+                 font=(FONT, 28, "bold")).pack(pady=(6, 0))
+        tk.Label(f, text="电脑同步显示", bg=BG, fg=FG,
+                 font=(FONT, 28, "bold")).pack()
 
         # 二维码白卡片（视觉焦点）
         qr_card = tk.Frame(f, bg=CARD, highlightbackground=BORDER,
@@ -101,22 +97,10 @@ class App:
         tk.Label(f, text="扫完后手机会显示 ↓", bg=BG, fg=MUTED,
                  font=(FONT, 10)).pack()
 
-        row1 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
-                        highlightthickness=1, bd=0)
-        row1.pack(fill="x", pady=(6, 2), ipady=5)
-        tk.Label(row1, text="🍎", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(12, 2))
-        tk.Label(row1, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(0, 6))
-        self.ip_label = tk.Label(row1, text=self.current_ip, bg=YELLOW_BG,
-                                 fg=YELLOW_TX, font=("Menlo", 13, "bold"),
-                                 cursor="hand2")
-        self.ip_label.pack(side="left")
-        self.ip_label.bind("<Button-1>", self.copy_url)
-        # 备用 IP 容器：黄底小块，放在右侧，点击切换
-        self.alt_box = tk.Frame(row1, bg=YELLOW_BG)
-        self.alt_box.pack(side="right", padx=4)
-        self._fill_alt_ips()
+        # 上块：两个等大的黄色地址按钮（主地址 + 备用地址）
+        self.addr_row = tk.Frame(f, bg=BG)
+        self.addr_row.pack(fill="x", pady=(6, 2))
+        self._fill_addr_buttons()
 
         row2 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
                         highlightthickness=1, bd=0)
@@ -170,23 +154,40 @@ class App:
     def switch_ip(self, ip: str):
         self.current_ip = ip
         self.url = f"http://{ip}:{core.PORT}/"
-        self.ip_label.configure(text=self.current_ip)
         self.url_label.configure(text=self.url)
-        self._fill_alt_ips()
+        self._fill_addr_buttons()
         self._update_qr()
 
-    def _fill_alt_ips(self):
-        for w in self.alt_box.winfo_children():
+    def _fill_addr_buttons(self):
+        """重建两个等大黄色地址按钮：左边主地址（mac+safari），右边备用地址。"""
+        for w in self.addr_row.winfo_children():
             w.destroy()
+
+        main = tk.Frame(self.addr_row, bg=YELLOW_BG,
+                        highlightbackground=YELLOW_BD, highlightthickness=1, bd=0)
+        main.pack(side="left", fill="both", expand=True, padx=(0, 2), ipady=6)
+        tk.Label(main, text="🍎", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 13)).pack(side="left", padx=(10, 2))
+        tk.Label(main, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 13)).pack(side="left", padx=(0, 5))
+        self.ip_label = tk.Label(main, text=self.current_ip, bg=YELLOW_BG,
+                                 fg=YELLOW_TX, font=("Menlo", 13, "bold"),
+                                 cursor="hand2")
+        self.ip_label.pack(side="left")
+        self.ip_label.bind("<Button-1>", self.copy_url)
+
         for ip in self.ips:
             if ip == self.current_ip:
                 continue
-            b = tk.Label(self.alt_box, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
-                         font=("Menlo", 10, "bold"), cursor="hand2",
-                         padx=7, pady=2,
-                         highlightbackground="#d9b800", highlightthickness=1)
-            b.pack(side="left", padx=2)
+            alt = tk.Frame(self.addr_row, bg=YELLOW_BG,
+                           highlightbackground=YELLOW_BD, highlightthickness=1, bd=0,
+                           cursor="hand2")
+            alt.pack(side="left", fill="both", expand=True, padx=(2, 0), ipady=6)
+            b = tk.Label(alt, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
+                         font=("Menlo", 13, "bold"), cursor="hand2")
+            b.pack(side="left", padx=12)
             b.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
+            alt.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
 
     @staticmethod
     def _not_in_apps_dir() -> bool:
