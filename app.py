@@ -15,14 +15,17 @@ import qrcode
 
 import server as core
 
-BG = "#0f1115"
-CARD = "#1b1f27"
-FG = "#e6e6e6"
-MUTED = "#9da7b3"
-GREEN = "#7ee787"
-RED = "#f47067"
-BLUE = "#58a6ff"
 IS_WINDOWS = sys.platform.startswith("win")
+
+BG = "#fff5f9"          # 奶油粉背景
+CARD = "#ffffff"        # 白色卡片
+FG = "#5b4a6b"          # 深紫棕文字
+MUTED = "#a08fb0"       # 柔和灰紫
+GREEN = "#7cb342"       # 清新绿
+RED = "#ff6b6b"         # 草莓红
+BLUE = "#ff7bac"        # 樱花粉（链接）
+PINK = "#ff8fc0"        # 按钮粉
+FONT = "Comic Sans MS" if IS_WINDOWS else "Yuanti SC"
 
 
 def check_accessibility() -> bool:
@@ -54,21 +57,21 @@ class App:
         root.resizable(False, False)
 
         tk.Label(
-            root, text="手机语音输入 → 电脑", bg=BG, fg=FG,
-            font=("PingFang SC", 20, "bold"),
+            root, text="🎤 手机语音输入 → 电脑", bg=BG, fg=FG,
+            font=(FONT, 20, "bold"),
         ).pack(pady=(26, 2))
         tk.Label(
-            root, text="用手机相机扫二维码，语音直接打到电脑上",
-            bg=BG, fg=MUTED, font=("PingFang SC", 12),
+            root, text="🐰 手机扫二维码，语音直接打到电脑上～",
+            bg=BG, fg=MUTED, font=(FONT, 12),
         ).pack()
         tk.Label(
-            root, text="使用前先在电脑上点一下要输入文字的位置（如微信、文档）",
-            bg=BG, fg=MUTED, font=("PingFang SC", 11),
+            root, text="使用前先在电脑上点一下要输入的位置哦（微信、文档都可以）",
+            bg=BG, fg=MUTED, font=(FONT, 11),
         ).pack(pady=(4, 0))
         if not IS_WINDOWS and self._not_in_apps_dir():
             tk.Label(
-                root, text="⚠ 当前从临时位置运行：请把 App 移到“应用程序”文件夹再打开",
-                bg=BG, fg=RED, font=("PingFang SC", 11),
+                root, text="😿 当前从临时位置运行：请把 App 移到“应用程序”文件夹再打开",
+                bg=BG, fg=RED, font=(FONT, 11),
             ).pack(pady=(6, 0))
 
         self.qr_label = tk.Label(root, bg=BG)
@@ -82,26 +85,26 @@ class App:
                 tk.Button(
                     ip_frame, text=ip, command=lambda ip=ip: self.switch_ip(ip),
                     bg=CARD, fg=BLUE, activebackground=BG, relief="flat",
-                    font=("Menlo", 11), padx=8, pady=2,
+                    font=("Menlo", 11), padx=8, pady=2, bd=0,
                 ).pack(side="left", padx=4)
         if self.ips == ["127.0.0.1"]:
             tk.Label(
-                root, text="⚠ 未检测到局域网 IP：请检查电脑的网络/WiFi 连接",
-                bg=BG, fg=RED, font=("PingFang SC", 11),
+                root, text="😿 没找到局域网 IP：检查一下电脑的 WiFi 连接哦",
+                bg=BG, fg=RED, font=(FONT, 11),
             ).pack(pady=(6, 0))
 
         self.url_label = tk.Label(
             root, text=self.url, bg=BG, fg=BLUE,
-            font=("Menlo", 13), cursor="hand2",
+            font=("Menlo", 12), cursor="hand2",
         )
         self.url_label.pack()
         self.url_label.bind("<Button-1>", self.copy_url)
         tk.Label(
-            root, text="点击网址可复制", bg=BG, fg=MUTED,
-            font=("PingFang SC", 10),
+            root, text="点网址可以复制 ✂️", bg=BG, fg=MUTED,
+            font=(FONT, 10),
         ).pack()
 
-        self.status_label = tk.Label(root, text="", bg=BG, font=("PingFang SC", 12))
+        self.status_label = tk.Label(root, text="", bg=BG, font=(FONT, 12))
         self.status_label.pack(pady=(14, 0))
         self.update_status()
 
@@ -109,23 +112,23 @@ class App:
         btn_frame.pack(pady=12)
         if not IS_WINDOWS:
             tk.Button(
-                btn_frame, text="打开系统设置授权", command=self.open_settings,
-                bg=CARD, fg=FG, activebackground=BG, relief="flat",
-                font=("PingFang SC", 12), padx=12, pady=6,
+                btn_frame, text="🍬 打开系统设置授权", command=self.open_settings,
+                bg=PINK, fg="#ffffff", activebackground="#ff9ecb", relief="flat",
+                font=(FONT, 12, "bold"), padx=12, pady=6, bd=0,
             ).pack(side="left", padx=6)
         tk.Button(
-            btn_frame, text="退出", command=self.on_close,
+            btn_frame, text="👋 退出", command=self.on_close,
             bg=CARD, fg=FG, activebackground=BG, relief="flat",
-            font=("PingFang SC", 12), padx=12, pady=6,
+            font=(FONT, 12), padx=12, pady=6, bd=0,
         ).pack(side="left", padx=6)
 
         tip = (
-            "手机与电脑需在同一 WiFi；打不开页面请在 Windows 防火墙允许本程序（专用网络）"
+            "手机和电脑要在同一个 WiFi 哦；打不开页面就去 Windows 防火墙放行本程序"
             if IS_WINDOWS
-            else "手机与电脑需在同一 WiFi；授权一次即可"
+            else "手机和电脑要在同一个 WiFi 哦；授权一次就够啦"
         )
         tk.Label(
-            root, text=tip, bg=BG, fg=MUTED, font=("PingFang SC", 10),
+            root, text=tip, bg=BG, fg=MUTED, font=(FONT, 10),
         ).pack(pady=(0, 20))
 
         root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -152,16 +155,16 @@ class App:
     def copy_url(self, _event=None):
         self.root.clipboard_clear()
         self.root.clipboard_append(self.url)
-        self.status_label.config(text="网址已复制", fg=GREEN)
+        self.status_label.config(text="✅ 网址已复制", fg=GREEN)
         self.root.after(2000, self.update_status)
 
     def update_status(self):
         if check_accessibility():
-            text = "✓ 已就绪，手机扫码即可使用" if IS_WINDOWS else "✓ 已获得辅助功能权限，可以直接语音输入"
+            text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权啦，可以直接语音输入！"
             self.status_label.config(text=text, fg=GREEN)
         else:
             self.status_label.config(
-                text="⚠ 未授权：点下方按钮，允许“语音输入电脑”控制这台电脑",
+                text="😿 还没授权：点下面的按钮，允许“语音输入电脑”控制键盘哦",
                 fg=RED,
             )
         self.root.after(3000, self.update_status)

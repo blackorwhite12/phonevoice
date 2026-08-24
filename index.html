@@ -3,44 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#ffe9f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>手机语音输入 → Mac</title>
+<title>手机语音输入 → 电脑</title>
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 16px; min-height: 100vh;
-    font-family: -apple-system, "PingFang SC", sans-serif;
-    background: #0f1115; color: #e6e6e6;
+    margin: 0; padding: 18px 16px 24px; min-height: 100vh;
+    font-family: "Yuanti SC", "YouYuan", "Comic Sans MS", "PingFang SC", sans-serif;
+    background: linear-gradient(165deg, #ffe9f1 0%, #e8f4ff 55%, #f3e8ff 100%);
+    color: #5b4a6b;
     display: flex; flex-direction: column;
+    position: relative;
   }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  .status { font-size: 13px; color: #7ee787; margin-bottom: 12px; }
+  /* 漂浮装饰 */
+  body::before, body::after {
+    position: fixed; font-size: 46px; opacity: .32; pointer-events: none; z-index: 0;
+  }
+  body::before { content: "☁️"; top: 24px; right: 18px; animation: floaty 4s ease-in-out infinite; }
+  body::after { content: "⭐"; bottom: 70px; left: 16px; animation: floaty 5s ease-in-out infinite reverse; }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  h1 {
+    font-size: 23px; margin: 6px 0 6px; color: #ff7bac; z-index: 1;
+    text-shadow: 0 2px 0 rgba(255,255,255,.7); letter-spacing: 1px;
+  }
+  .status {
+    font-size: 14px; color: #8fb06a; margin-bottom: 14px; z-index: 1;
+  }
   textarea {
-    flex: 1; min-height: 200px; font-size: 18px; line-height: 1.5;
-    background: #1b1f27; color: #fff; border: 1px solid #333;
-    border-radius: 12px; padding: 14px; resize: none; outline: none;
+    flex: 1; min-height: 210px; font-size: 18px; line-height: 1.6;
+    background: rgba(255,255,255,.92); color: #5b4a6b;
+    border: 3px solid #ffb6d5; border-radius: 26px;
+    padding: 16px 18px; resize: none; outline: none; z-index: 1;
+    box-shadow: 0 8px 24px rgba(255,150,190,.28), inset 0 2px 8px rgba(255,205,225,.35);
+    font-family: inherit;
   }
-  textarea:focus { border-color: #58a6ff; }
+  textarea::placeholder { color: #cdb9dc; }
+  textarea:focus { border-color: #ff8fc0; }
   button {
-    margin-top: 12px; padding: 16px; font-size: 18px; font-weight: 600;
-    background: #238636; color: #fff; border: 0; border-radius: 12px;
+    margin-top: 14px; padding: 16px; font-size: 20px; font-weight: 700;
+    background: linear-gradient(135deg, #ff9ecb, #ff6fb0);
+    color: #fff; border: none; border-radius: 999px; z-index: 1;
+    box-shadow: 0 6px 0 #e05694, 0 12px 24px rgba(255,110,175,.35);
+    font-family: inherit; letter-spacing: 2px;
+    transition: transform .1s, box-shadow .1s;
   }
-  button:disabled { opacity: .6; }
-  .opt { margin-top: 12px; font-size: 14px; color: #9da7b3; display: flex; align-items: center; gap: 8px; }
-  #msg { margin-top: 10px; font-size: 14px; color: #f0b429; min-height: 20px; }
+  button:active { transform: translateY(4px); box-shadow: 0 2px 0 #e05694; }
+  button:disabled { opacity: .6; transform: none; box-shadow: 0 4px 0 #e05694; }
+  .opt {
+    margin-top: 14px; font-size: 14px; color: #9b87ac; z-index: 1;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .opt input { width: 20px; height: 20px; accent-color: #ff7bac; }
+  #msg { margin-top: 10px; font-size: 15px; color: #ff7bac; min-height: 22px; z-index: 1; }
 </style>
 </head>
 <body>
-<h1>手机语音输入 → Mac</h1>
-<div class="status">● 已连接电脑，点下方输入框直接说话</div>
-<textarea id="input" placeholder="点这里，用手机输入法语音说话，说完自动发送到电脑" autofocus></textarea>
-<button id="send">发送到电脑</button>
-<label class="opt"><input type="checkbox" id="auto" checked> 语音说完自动发送（打字时建议关掉）</label>
+<h1>🎤 手机语音输入</h1>
+<div class="status">🐰 已经连上电脑啦，点下面的框框直接说话～</div>
+<textarea id="input" placeholder="点这里说话哦，说完自动飞到电脑里 ✨" autofocus></textarea>
+<button id="send">✈️ 发送到电脑</button>
+<label class="opt"><input type="checkbox" id="auto" checked> 🎀 说完自动发送（打字时关掉哦）</label>
 <div id="msg"></div>
 <script>
 const input = document.getElementById('input');
@@ -60,16 +88,16 @@ function sendText() {
   }).then(r => r.json()).then(d => {
     if (d.ok) {
       if (d.method === 'clipboard') {
-        msg.textContent = '模拟输入失败（Mac 端缺少辅助功能权限），文字已在剪贴板，可先手动 Cmd+V；授权方法见 README';
+        msg.textContent = '😿 电脑没授权键盘权限，文字先进剪贴板啦，手动 Cmd+V 一下下（Mac）';
       } else {
-        msg.textContent = '已发送到电脑 ✓';
+        msg.textContent = '🎉 已经飞到电脑上啦！';
       }
       input.value = '';
     } else {
-      msg.textContent = '发送失败：' + (d.error || '未知错误');
+      msg.textContent = '😵 发送失败：' + (d.error || '未知错误');
     }
   }).catch(() => {
-    msg.textContent = '发送失败，请检查电脑端服务是否在运行';
+    msg.textContent = '😵 发送失败，电脑端的小程序是不是关掉啦？';
   }).finally(() => {
     sendBtn.disabled = false;
     input.focus();
