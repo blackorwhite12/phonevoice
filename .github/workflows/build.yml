@@ -110,14 +110,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: windows-x64
-          path: artifacts
-      - uses: actions/download-artifact@v4
-        with:
-          name: macos-arm64
           path: artifacts
       - name: 列出产物
         run: find artifacts -type f
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*
+      - name: 发布到 Releases
+        run: gh release create "$GITHUB_REF_NAME" "artifacts/**/*" --repo "$GITHUB_REPOSITORY" --title "语音输入电脑 $GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
