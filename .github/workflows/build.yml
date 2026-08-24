@@ -114,6 +114,6 @@ jobs:
       - name: 列出产物
         run: find artifacts -type f
       - name: 发布到 Releases
-        run: gh release create "$GITHUB_REF_NAME" "artifacts/**/*" --repo "$GITHUB_REPOSITORY" --title "语音输入电脑 $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" artifacts/*/* --repo "$GITHUB_REPOSITORY" --title "语音输入电脑 $GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ github.token }}
