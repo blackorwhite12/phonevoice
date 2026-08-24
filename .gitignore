@@ -7,6 +7,7 @@ build/
 *.spec
 .DS_Store
 *.zip
+releases/
 语音输入电脑-v1.1/
 AppIcon.iconset/
 app.ico
