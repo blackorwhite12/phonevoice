@@ -43,7 +43,9 @@ def check_accessibility() -> bool:
 class App:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.url = f"http://{core.get_lan_ip()}:{core.PORT}/"
+        self.ips = core.get_all_lan_ips() or ["127.0.0.1"]
+        self.current_ip = self.ips[0]
+        self.url = f"http://{self.current_ip}:{core.PORT}/"
         self.server = core.start_server()
         core.log(f"App 启动，路径: {sys.executable}")
 
@@ -69,9 +71,24 @@ class App:
                 bg=BG, fg=RED, font=("PingFang SC", 11),
             ).pack(pady=(6, 0))
 
-        qr_img = qrcode.make(self.url).convert("RGB").resize((300, 300), Image.NEAREST)
-        self.qr_photo = ImageTk.PhotoImage(qr_img)
-        tk.Label(root, image=self.qr_photo, bg=BG).pack(pady=16)
+        self.qr_label = tk.Label(root, bg=BG)
+        self.qr_label.pack(pady=16)
+        self._update_qr()
+
+        if len(self.ips) > 1:
+            ip_frame = tk.Frame(root, bg=BG)
+            ip_frame.pack()
+            for ip in self.ips:
+                tk.Button(
+                    ip_frame, text=ip, command=lambda ip=ip: self.switch_ip(ip),
+                    bg=CARD, fg=BLUE, activebackground=BG, relief="flat",
+                    font=("Menlo", 11), padx=8, pady=2,
+                ).pack(side="left", padx=4)
+        if self.ips == ["127.0.0.1"]:
+            tk.Label(
+                root, text="⚠ 未检测到局域网 IP：请检查电脑的网络/WiFi 连接",
+                bg=BG, fg=RED, font=("PingFang SC", 11),
+            ).pack(pady=(6, 0))
 
         self.url_label = tk.Label(
             root, text=self.url, bg=BG, fg=BLUE,
@@ -102,12 +119,27 @@ class App:
             font=("PingFang SC", 12), padx=12, pady=6,
         ).pack(side="left", padx=6)
 
-        tip = "手机与电脑需在同一 WiFi" if IS_WINDOWS else "手机与电脑需在同一 WiFi；授权一次即可"
+        tip = (
+            "手机与电脑需在同一 WiFi；打不开页面请在 Windows 防火墙允许本程序（专用网络）"
+            if IS_WINDOWS
+            else "手机与电脑需在同一 WiFi；授权一次即可"
+        )
         tk.Label(
             root, text=tip, bg=BG, fg=MUTED, font=("PingFang SC", 10),
         ).pack(pady=(0, 20))
 
         root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def _update_qr(self):
+        qr_img = qrcode.make(self.url).convert("RGB").resize((300, 300), Image.NEAREST)
+        self.qr_photo = ImageTk.PhotoImage(qr_img)
+        self.qr_label.configure(image=self.qr_photo)
+
+    def switch_ip(self, ip: str):
+        self.current_ip = ip
+        self.url = f"http://{ip}:{core.PORT}/"
+        self.url_label.configure(text=self.url)
+        self._update_qr()
 
     @staticmethod
     def _not_in_apps_dir() -> bool:

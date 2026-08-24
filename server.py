@@ -55,16 +55,34 @@ def resource_path(name: str) -> Path:
     return Path(base) / name
 
 
-def get_lan_ip() -> str:
-    """获取本机局域网 IP（UDP 连接不真正发包，只用来选路由）。"""
+def get_all_lan_ips() -> list[str]:
+    """列出本机所有 IPv4 局域网地址（过滤回环）。"""
+    ips: set[str] = set()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            ip = info[4][0]
+            if ":" not in ip and not ip.startswith("127."):
+                ips.add(ip)
+    except Exception:
+        pass
+    # UDP 技巧补充主网卡 IP（不真正发包，只用来选路由）
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
+        ip = s.getsockname()[0]
+        if ":" not in ip and not ip.startswith("127."):
+            ips.add(ip)
     except OSError:
-        return "127.0.0.1"
+        pass
     finally:
         s.close()
+    return sorted(ips)
+
+
+def get_lan_ip() -> str:
+    """返回第一个局域网 IP；没有时退回回环地址。"""
+    ips = get_all_lan_ips()
+    return ips[0] if ips else "127.0.0.1"
 
 
 def type_text(text: str) -> tuple[str, str]:
