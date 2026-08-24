@@ -166,10 +166,8 @@ class App:
         main = tk.Frame(self.addr_row, bg=YELLOW_BG,
                         highlightbackground=YELLOW_BD, highlightthickness=1, bd=0)
         main.pack(side="left", fill="both", expand=True, padx=(0, 2), ipady=6)
-        tk.Label(main, text="🍎", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(10, 2))
         tk.Label(main, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(0, 5))
+                 font=(FONT, 13)).pack(side="left", padx=(10, 5))
         self.ip_label = tk.Label(main, text=self.current_ip, bg=YELLOW_BG,
                                  fg=YELLOW_TX, font=("Menlo", 13, "bold"),
                                  cursor="hand2")
