@@ -97,41 +97,39 @@ class App:
         tk.Label(tip, text="扫这个二维码 📷", bg=BG, fg=MUTED, font=(FONT, 13)
                  ).pack(side="left")
 
-        # 主地址条：模拟扫码后手机打开的地址（黄色）
-        tk.Label(f, text="扫完后相机会显示 ↓", bg=BG, fg=MUTED,
+        # 地址区：上块 = Mac 手机 Safari 的样子；下块 = Windows 浏览器看到的样子
+        tk.Label(f, text="扫完后手机会显示 ↓", bg=BG, fg=MUTED,
                  font=(FONT, 10)).pack()
-        main_bar = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
-                            highlightthickness=1, bd=0, cursor="hand2")
-        main_bar.pack(fill="x", pady=(6, 4), ipady=7)
-        main_bar.bind("<Button-1>", self.copy_url)
-        tk.Label(main_bar, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(12, 5))
-        self.url_label = tk.Label(main_bar, text=self.url, bg=YELLOW_BG,
-                                  fg=YELLOW_TX, font=("Menlo", 12, "bold"),
-                                  cursor="hand2")
-        self.url_label.pack(side="left", fill="x", expand=True)
-        self.url_label.bind("<Button-1>", self.copy_url)
-        tk.Label(main_bar, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 10), cursor="hand2").pack(side="right", padx=(0, 12))
 
-        # 备用地址区（多网卡时显示；点击切换二维码）
-        if len(self.ips) > 1:
-            alt = tk.Frame(f, bg=SOFT_BLUE, highlightbackground=SOFT_BLUE_BD,
-                           highlightthickness=1, bd=0)
-            alt.pack(fill="x", pady=(2, 0), ipady=5)
-            tk.Label(alt, text="其他网络地址", bg=SOFT_BLUE, fg="#6d93ab",
-                     font=(FONT, 10)).pack(side="left", padx=(12, 6))
-            for ip in self.ips:
-                b = tk.Label(alt, text=ip, bg=SOFT_BLUE, fg="#4a6f88",
-                             font=("Menlo", 10, "bold"), cursor="hand2",
-                             padx=8, pady=2)
-                b.pack(side="left", padx=2)
-                b.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
-            tk.Label(alt, text="打不开就换一个", bg=SOFT_BLUE, fg="#9db7c8",
-                     font=(FONT, 9)).pack(side="right", padx=(0, 10))
-        elif self.ips == ["127.0.0.1"]:
-            tk.Label(f, text="😿 没找到局域网 IP，检查一下电脑的 WiFi 哦",
-                     bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(4, 0))
+        row1 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
+                        highlightthickness=1, bd=0)
+        row1.pack(fill="x", pady=(6, 2), ipady=5)
+        tk.Label(row1, text="🍎", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 13)).pack(side="left", padx=(12, 2))
+        tk.Label(row1, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 13)).pack(side="left", padx=(0, 6))
+        self.ip_label = tk.Label(row1, text=self.current_ip, bg=YELLOW_BG,
+                                 fg=YELLOW_TX, font=("Menlo", 13, "bold"),
+                                 cursor="hand2")
+        self.ip_label.pack(side="left")
+        self.ip_label.bind("<Button-1>", self.copy_url)
+        # 备用 IP 容器：黄底小块，放在右侧，点击切换
+        self.alt_box = tk.Frame(row1, bg=YELLOW_BG)
+        self.alt_box.pack(side="right", padx=4)
+        self._fill_alt_ips()
+
+        row2 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
+                        highlightthickness=1, bd=0)
+        row2.pack(fill="x", pady=(2, 4), ipady=5)
+        tk.Label(row2, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 13)).pack(side="left", padx=(12, 6))
+        self.url_label = tk.Label(row2, text=self.url, bg=YELLOW_BG,
+                                  fg=YELLOW_TX, font=("Menlo", 11, "bold"),
+                                  cursor="hand2")
+        self.url_label.pack(side="left")
+        self.url_label.bind("<Button-1>", self.copy_url)
+        tk.Label(row2, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
+                 font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 12))
 
         # 状态
         self.status_label = tk.Label(f, text="", bg=BG, font=(FONT, 12))
@@ -172,8 +170,23 @@ class App:
     def switch_ip(self, ip: str):
         self.current_ip = ip
         self.url = f"http://{ip}:{core.PORT}/"
+        self.ip_label.configure(text=self.current_ip)
         self.url_label.configure(text=self.url)
+        self._fill_alt_ips()
         self._update_qr()
+
+    def _fill_alt_ips(self):
+        for w in self.alt_box.winfo_children():
+            w.destroy()
+        for ip in self.ips:
+            if ip == self.current_ip:
+                continue
+            b = tk.Label(self.alt_box, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
+                         font=("Menlo", 10, "bold"), cursor="hand2",
+                         padx=7, pady=2,
+                         highlightbackground="#d9b800", highlightthickness=1)
+            b.pack(side="left", padx=2)
+            b.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
 
     @staticmethod
     def _not_in_apps_dir() -> bool:
