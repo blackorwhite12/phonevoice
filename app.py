@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """手机语音输入 → 电脑：macOS/Windows 桌面 App（二维码 + 权限引导）。
 
-视觉原则：暖奶油底、白卡片、大圆角、统一色板、克制 emoji、层级清晰。
+界面风格与在线 Demo 统一：奶油粉背景、白卡片粉粗边框、粉/蓝胶囊按钮、圆体字。
 打包：./build.command（Mac） / build.bat（Windows）
 """
 
@@ -18,19 +18,21 @@ import server as core
 
 IS_WINDOWS = sys.platform.startswith("win")
 
-# ---------- 色板（柔和卡通，低饱和） ----------
-BG = "#fff7f2"          # 暖奶油背景
+# ---------- Demo 同款色板 ----------
+BG = "#ffe9f1"          # 奶油粉背景
 CARD = "#ffffff"        # 卡片白
-BORDER = "#f3d9e4"      # 浅粉描边
-FG = "#4a4458"          # 主文字深紫灰
-MUTED = "#a59bb0"       # 辅助灰紫
-GREEN = "#7cb342"       # 成功绿
+CARD_BD = "#ffb6d5"     # 粉色粗边框
+FG = "#5b4a6b"          # 主文字
+MUTED = "#9b87ac"       # 辅助文字
+PINK = "#ff6fb0"        # 粉色按钮
+PINK_BD = "#e05694"     # 粉按钮按压色
+BLUE = "#7fb8ff"        # 蓝色按钮
+BLUE_BD = "#5f97d9"
+GREEN = "#8fb06a"       # 成功绿
 RED = "#e86a6a"         # 警示红
-YELLOW_BG = "#ffe9a8"   # 地址条淡黄底
-YELLOW_BD = "#e8cf78"   # 地址条描边
-YELLOW_TX = "#5a4a1f"   # 地址条文字
-SOFT_BLUE = "#e6f3fb"   # 备用地址浅蓝底
-SOFT_BLUE_BD = "#bcd9ea"
+YELLOW_BG = "#fff6d8"   # 地址条淡黄
+YELLOW_BD = "#ffd76e"
+YELLOW_TX = "#c99700"
 FONT = "Comic Sans MS" if IS_WINDOWS else "Wawati SC"
 
 
@@ -47,6 +49,19 @@ def check_accessibility() -> bool:
     except Exception as e:
         core.log(f"check_accessibility 异常: {e!r}")
         return False
+
+
+def make_btn(parent, text, color, shadow, cmd):
+    """用 Label 模拟胶囊按钮：纯色底、白字、悬停加深。"""
+    b = tk.Label(parent, text=text, bg=color, fg="#ffffff",
+                 font=(FONT, 12, "bold"), padx=18, pady=8,
+                 cursor="hand2", bd=0)
+    b._color = color
+    b._shadow = shadow
+    b.bind("<Button-1>", lambda e: cmd())
+    b.bind("<Enter>", lambda e: b.configure(bg=shadow))
+    b.bind("<Leave>", lambda e: b.configure(bg=color))
+    return b
 
 
 class App:
@@ -66,72 +81,58 @@ class App:
 
     # ---------- 界面 ----------
     def _build_ui(self):
-        f = tk.Frame(self.root, bg=BG, padx=34, pady=24)
+        f = tk.Frame(self.root, bg=BG, padx=30, pady=22)
         f.pack(fill="both", expand=True)
 
-        # 顶部：名称（居中、放大）
-        tk.Label(f, text="手机语音输入", bg=BG, fg=FG,
-                 font=(FONT, 28, "bold")).pack(pady=(6, 0))
-        tk.Label(f, text="电脑同步显示", bg=BG, fg=FG,
-                 font=(FONT, 28, "bold")).pack()
+        # 标题（Demo 同款：粉色、圆体、居中）
+        tk.Label(f, text="🎤 手机语音输入", bg=BG, fg="#ff7bac",
+                 font=(FONT, 26, "bold")).pack()
+        tk.Label(f, text="💻 电脑同步显示", bg=BG, fg="#ff7bac",
+                 font=(FONT, 26, "bold")).pack(pady=(0, 8))
 
-        # 二维码白卡片（视觉焦点）
-        qr_card = tk.Frame(f, bg=CARD, highlightbackground=BORDER,
-                           highlightthickness=1, bd=0)
-        qr_card.pack(pady=(18, 0), ipadx=14, ipady=10)
+        # 二维码白卡片（粉色粗边框）
+        qr_card = tk.Frame(f, bg=CARD, highlightbackground=CARD_BD,
+                           highlightthickness=3, bd=0)
+        qr_card.pack(pady=(6, 0), ipadx=12, ipady=8)
         self.qr_label = tk.Label(qr_card, bg=CARD)
         self.qr_label.pack()
         self._update_qr()
 
         # 提示
-        tip = tk.Frame(f, bg=BG)
-        tip.pack(pady=(16, 8))
-        tk.Label(tip, text="用手机", bg=BG, fg=MUTED, font=(FONT, 13)
-                 ).pack(side="left")
-        tk.Label(tip, text="相机", bg=BG, fg=FG, font=(FONT, 16, "bold")
-                 ).pack(side="left", padx=2)
-        tk.Label(tip, text="扫这个二维码 📷", bg=BG, fg=MUTED, font=(FONT, 13)
-                 ).pack(side="left")
+        tk.Label(f, text="用手机相机扫二维码，语音直接打到电脑上 🐰",
+                 bg=BG, fg=MUTED, font=(FONT, 12)).pack(pady=(12, 6))
 
-        # 地址区：上块 = Mac 手机 Safari 的样子；下块 = Windows 浏览器看到的样子
-        tk.Label(f, text="扫完后手机会显示 ↓", bg=BG, fg=MUTED,
-                 font=(FONT, 10)).pack()
-
-        # 上块：两个等大的黄色地址按钮（主地址 + 备用地址）
+        # 地址区：两个等大黄按钮（主 + 备用）+ Windows 完整网址
         self.addr_row = tk.Frame(f, bg=BG)
-        self.addr_row.pack(fill="x", pady=(6, 2))
+        self.addr_row.pack(fill="x", pady=(0, 4))
         self._fill_addr_buttons()
 
         row2 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
-                        highlightthickness=1, bd=0)
-        row2.pack(fill="x", pady=(2, 4), ipady=5)
+                        highlightthickness=2, bd=0)
+        row2.pack(fill="x", pady=(2, 0), ipady=5)
         tk.Label(row2, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(12, 6))
+                 font=(FONT, 12)).pack(side="left", padx=(10, 5))
         self.url_label = tk.Label(row2, text=self.url, bg=YELLOW_BG,
-                                  fg=YELLOW_TX, font=("Menlo", 11, "bold"),
+                                  fg=YELLOW_TX, font=("Menlo", 10, "bold"),
                                   cursor="hand2")
         self.url_label.pack(side="left")
         self.url_label.bind("<Button-1>", self.copy_url)
         tk.Label(row2, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 12))
+                 font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 10))
 
         # 状态
         self.status_label = tk.Label(f, text="", bg=BG, font=(FONT, 12))
-        self.status_label.pack(pady=(16, 2))
+        self.status_label.pack(pady=(12, 2))
         self.update_status()
 
-        # 操作按钮
+        # 操作按钮（胶囊风）
         btn_row = tk.Frame(f, bg=BG)
-        btn_row.pack(pady=(8, 4))
+        btn_row.pack(pady=(4, 6))
         if not IS_WINDOWS:
-            tk.Button(btn_row, text="🍬 打开系统设置授权", command=self.open_settings,
-                      bg=CARD, fg=FG, activebackground="#f7e8f0", relief="flat",
-                      font=(FONT, 12, "bold"), padx=14, pady=6, cursor="hand2"
-                      ).pack(side="left", padx=6)
-        tk.Button(btn_row, text="👋 退出", command=self.on_close,
-                  bg=CARD, fg=FG, activebackground="#f7e8f0", relief="flat",
-                  font=(FONT, 12, "bold"), padx=14, pady=6, cursor="hand2"
-                  ).pack(side="left", padx=6)
+            make_btn(btn_row, "🍬 打开系统设置授权", PINK, PINK_BD,
+                     self.open_settings).pack(side="left", padx=6)
+        make_btn(btn_row, "👋 退出", BLUE, BLUE_BD,
+                 self.on_close).pack(side="left", padx=6)
 
         tip_txt = (
             "手机和电脑连同一个 WiFi；打不开就在 Windows 防火墙放行本程序"
@@ -147,29 +148,22 @@ class App:
 
     # ---------- 功能 ----------
     def _update_qr(self):
-        qr_img = qrcode.make(self.url).convert("RGB").resize((280, 280), Image.NEAREST)
+        qr_img = qrcode.make(self.url).convert("RGB").resize((270, 270), Image.NEAREST)
         self.qr_photo = ImageTk.PhotoImage(qr_img)
         self.qr_label.configure(image=self.qr_photo)
 
-    def switch_ip(self, ip: str):
-        self.current_ip = ip
-        self.url = f"http://{ip}:{core.PORT}/"
-        self.url_label.configure(text=self.url)
-        self._fill_addr_buttons()
-        self._update_qr()
-
     def _fill_addr_buttons(self):
-        """重建两个等大黄色地址按钮：左边主地址（mac+safari），右边备用地址。"""
+        """两个等大黄色地址按钮：主地址（Safari）+ 备用地址，点击切换。"""
         for w in self.addr_row.winfo_children():
             w.destroy()
 
         main = tk.Frame(self.addr_row, bg=YELLOW_BG,
-                        highlightbackground=YELLOW_BD, highlightthickness=1, bd=0)
-        main.pack(side="left", fill="both", expand=True, padx=(0, 2), ipady=6)
+                        highlightbackground=YELLOW_BD, highlightthickness=2, bd=0)
+        main.pack(side="left", fill="both", expand=True, padx=(0, 2), ipady=5)
         tk.Label(main, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 13)).pack(side="left", padx=(10, 5))
+                 font=(FONT, 12)).pack(side="left", padx=(10, 5))
         self.ip_label = tk.Label(main, text=self.current_ip, bg=YELLOW_BG,
-                                 fg=YELLOW_TX, font=("Menlo", 13, "bold"),
+                                 fg=YELLOW_TX, font=("Menlo", 12, "bold"),
                                  cursor="hand2")
         self.ip_label.pack(side="left")
         self.ip_label.bind("<Button-1>", self.copy_url)
@@ -178,14 +172,21 @@ class App:
             if ip == self.current_ip:
                 continue
             alt = tk.Frame(self.addr_row, bg=YELLOW_BG,
-                           highlightbackground=YELLOW_BD, highlightthickness=1, bd=0,
+                           highlightbackground=YELLOW_BD, highlightthickness=2, bd=0,
                            cursor="hand2")
-            alt.pack(side="left", fill="both", expand=True, padx=(2, 0), ipady=6)
+            alt.pack(side="left", fill="both", expand=True, padx=(2, 0), ipady=5)
             b = tk.Label(alt, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
-                         font=("Menlo", 13, "bold"), cursor="hand2")
+                         font=("Menlo", 12, "bold"), cursor="hand2")
             b.pack(side="left", padx=12)
             b.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
             alt.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
+
+    def switch_ip(self, ip: str):
+        self.current_ip = ip
+        self.url = f"http://{ip}:{core.PORT}/"
+        self.url_label.configure(text=self.url)
+        self._fill_addr_buttons()
+        self._update_qr()
 
     @staticmethod
     def _not_in_apps_dir() -> bool:
