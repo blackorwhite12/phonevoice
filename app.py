@@ -51,17 +51,73 @@ def check_accessibility() -> bool:
         return False
 
 
+class RoundCard(tk.Canvas):
+    """圆角卡片：Canvas 绘制圆角矩形，内部可放内容。"""
+
+    def __init__(self, master, radius=16, fill="#ffffff", outline="#ffb6d5",
+                 width=200, height=60, bg=None, **kw):
+        super().__init__(master, bg=bg or BG, highlightthickness=0, bd=0,
+                         width=width, height=height, **kw)
+        self.radius = radius
+        self.fill = fill
+        self.outline = outline
+        self.inner = None
+        self.bind("<Configure>", self._redraw)
+        self._redraw()
+
+    def _redraw(self, _e=None):
+        self.delete("bg")
+        w, h = self.winfo_width(), self.winfo_height()
+        if w <= 2 or h <= 2:
+            return
+        r = self.radius
+        pts = [r, 0, w - r, 0, w, 0, w, r, w, h - r, w, h,
+               w - r, h, r, h, 0, h, 0, h - r, 0, r, 0, 0]
+        self.create_polygon(pts, smooth=True, fill=self.fill,
+                            outline=self.outline, width=2, tags="bg")
+
+    def place_inner(self, inner):
+        self.inner = inner
+        self.bind("<Configure>", self._layout, add="+")
+        self._layout()
+
+    def _layout(self, _e=None):
+        if self.inner is None:
+            return
+        w, h = self.winfo_width(), self.winfo_height()
+        items = self.find_withtag("content")
+        if items:
+            self.coords(items[0], w // 2, h // 2)
+        else:
+            self.create_window(w // 2, h // 2, window=self.inner, tags="content")
+
+
 def make_btn(parent, text, color, shadow, cmd):
-    """用 Label 模拟胶囊按钮：纯色底、白字、悬停加深。"""
-    b = tk.Label(parent, text=text, bg=color, fg="#ffffff",
-                 font=(FONT, 12, "bold"), padx=18, pady=8,
-                 cursor="hand2", bd=0)
-    b._color = color
-    b._shadow = shadow
-    b.bind("<Button-1>", lambda e: cmd())
-    b.bind("<Enter>", lambda e: b.configure(bg=shadow))
-    b.bind("<Leave>", lambda e: b.configure(bg=color))
-    return b
+    """圆角胶囊按钮：Canvas 圆角底 + 白字，悬停加深。"""
+    width = max(120, len(text) * 15 + 36)
+    card = RoundCard(parent, radius=22, fill=color, outline=color,
+                     width=width, height=40)
+    inner = tk.Label(card, text=text, bg=color, fg="#ffffff",
+                     font=(FONT, 12, "bold"), cursor="hand2")
+    card.place_inner(inner)
+    card._color = color
+    card._shadow = shadow
+
+    def enter(_e=None):
+        card.itemconfigure("bg", fill=shadow, outline=shadow)
+        inner.configure(bg=shadow)
+
+    def leave(_e=None):
+        card.itemconfigure("bg", fill=color, outline=color)
+        inner.configure(bg=color)
+
+    card.bind("<Button-1>", lambda e: cmd())
+    inner.bind("<Button-1>", lambda e: cmd())
+    card.bind("<Enter>", enter)
+    card.bind("<Leave>", leave)
+    inner.bind("<Enter>", enter)
+    inner.bind("<Leave>", leave)
+    return card
 
 
 class App:
@@ -90,12 +146,14 @@ class App:
         tk.Label(f, text="💻 电脑同步显示", bg=BG, fg="#ff7bac",
                  font=(FONT, 26, "bold")).pack(pady=(0, 8))
 
-        # 二维码白卡片（粉色粗边框）
-        qr_card = tk.Frame(f, bg=CARD, highlightbackground=CARD_BD,
-                           highlightthickness=3, bd=0)
-        qr_card.pack(pady=(6, 0), ipadx=12, ipady=8)
-        self.qr_label = tk.Label(qr_card, bg=CARD)
-        self.qr_label.pack()
+        # 二维码白卡片（圆角 + 粉色粗边框）
+        qr_card = RoundCard(f, radius=22, fill=CARD, outline=CARD_BD,
+                            width=306, height=318)
+        qr_card.pack(pady=(6, 0))
+        qr_inner = tk.Frame(qr_card, bg=CARD)
+        self.qr_label = tk.Label(qr_inner, bg=CARD)
+        self.qr_label.pack(padx=16, pady=12)
+        qr_card.place_inner(qr_inner)
         self._update_qr()
 
         # 提示
@@ -107,18 +165,20 @@ class App:
         self.addr_row.pack(fill="x", pady=(0, 4))
         self._fill_addr_buttons()
 
-        row2 = tk.Frame(f, bg=YELLOW_BG, highlightbackground=YELLOW_BD,
-                        highlightthickness=2, bd=0)
-        row2.pack(fill="x", pady=(2, 0), ipady=5)
-        tk.Label(row2, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
+        row2 = RoundCard(f, radius=16, fill=YELLOW_BG, outline=YELLOW_BD,
+                         height=44)
+        row2.pack(fill="x", pady=(2, 0))
+        r2_inner = tk.Frame(row2, bg=YELLOW_BG)
+        tk.Label(r2_inner, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
                  font=(FONT, 12)).pack(side="left", padx=(10, 5))
-        self.url_label = tk.Label(row2, text=self.url, bg=YELLOW_BG,
+        self.url_label = tk.Label(r2_inner, text=self.url, bg=YELLOW_BG,
                                   fg=YELLOW_TX, font=("Menlo", 10, "bold"),
                                   cursor="hand2")
         self.url_label.pack(side="left")
         self.url_label.bind("<Button-1>", self.copy_url)
-        tk.Label(row2, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
+        tk.Label(r2_inner, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
                  font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 10))
+        row2.place_inner(r2_inner)
 
         # 状态
         self.status_label = tk.Label(f, text="", bg=BG, font=(FONT, 12))
@@ -157,29 +217,32 @@ class App:
         for w in self.addr_row.winfo_children():
             w.destroy()
 
-        main = tk.Frame(self.addr_row, bg=YELLOW_BG,
-                        highlightbackground=YELLOW_BD, highlightthickness=2, bd=0)
-        main.pack(side="left", fill="both", expand=True, padx=(0, 2), ipady=5)
-        tk.Label(main, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
+        main = RoundCard(self.addr_row, radius=16, fill=YELLOW_BG,
+                         outline=YELLOW_BD, height=42)
+        main.pack(side="left", fill="both", expand=True, padx=(0, 2))
+        m_inner = tk.Frame(main, bg=YELLOW_BG)
+        tk.Label(m_inner, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
                  font=(FONT, 12)).pack(side="left", padx=(10, 5))
-        self.ip_label = tk.Label(main, text=self.current_ip, bg=YELLOW_BG,
+        self.ip_label = tk.Label(m_inner, text=self.current_ip, bg=YELLOW_BG,
                                  fg=YELLOW_TX, font=("Menlo", 12, "bold"),
                                  cursor="hand2")
         self.ip_label.pack(side="left")
         self.ip_label.bind("<Button-1>", self.copy_url)
+        main.place_inner(m_inner)
 
         for ip in self.ips:
             if ip == self.current_ip:
                 continue
-            alt = tk.Frame(self.addr_row, bg=YELLOW_BG,
-                           highlightbackground=YELLOW_BD, highlightthickness=2, bd=0,
-                           cursor="hand2")
-            alt.pack(side="left", fill="both", expand=True, padx=(2, 0), ipady=5)
-            b = tk.Label(alt, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
+            alt = RoundCard(self.addr_row, radius=16, fill=YELLOW_BG,
+                            outline=YELLOW_BD, height=42, cursor="hand2")
+            alt.pack(side="left", fill="both", expand=True, padx=(2, 0))
+            a_inner = tk.Frame(alt, bg=YELLOW_BG)
+            b = tk.Label(a_inner, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
                          font=("Menlo", 12, "bold"), cursor="hand2")
             b.pack(side="left", padx=12)
             b.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
             alt.bind("<Button-1>", lambda e, ip=ip: self.switch_ip(ip))
+            alt.place_inner(a_inner)
 
     def switch_ip(self, ip: str):
         self.current_ip = ip
