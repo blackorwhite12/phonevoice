@@ -74,7 +74,7 @@ class RoundCard(tk.Canvas):
         pts = [r, 0, w - r, 0, w, 0, w, r, w, h - r, w, h,
                w - r, h, r, h, 0, h, 0, h - r, 0, r, 0, 0]
         self.create_polygon(pts, smooth=True, fill=self.fill,
-                            outline=self.outline, width=2, tags="bg")
+                            outline=self.outline, width=3, tags="bg")
 
     def place_inner(self, inner):
         self.inner = inner
@@ -95,8 +95,8 @@ class RoundCard(tk.Canvas):
 def make_btn(parent, text, color, shadow, cmd):
     """圆角胶囊按钮：Canvas 圆角底 + 白字，悬停加深。"""
     width = max(120, len(text) * 15 + 36)
-    card = RoundCard(parent, radius=22, fill=color, outline=color,
-                     width=width, height=40)
+    card = RoundCard(parent, radius=26, fill=color, outline=color,
+                     width=width, height=46)
     inner = tk.Label(card, text=text, bg=color, fg="#ffffff",
                      font=(FONT, 12, "bold"), cursor="hand2")
     card.place_inner(inner)
@@ -147,8 +147,8 @@ class App:
                  font=(FONT, 26, "bold")).pack(pady=(0, 8))
 
         # 二维码白卡片（圆角 + 粉色粗边框）
-        qr_card = RoundCard(f, radius=22, fill=CARD, outline=CARD_BD,
-                            width=306, height=318)
+        qr_card = RoundCard(f, radius=38, fill=CARD, outline=CARD_BD,
+                            width=320, height=330)
         qr_card.pack(pady=(6, 0))
         qr_inner = tk.Frame(qr_card, bg=CARD)
         self.qr_label = tk.Label(qr_inner, bg=CARD)
@@ -165,8 +165,8 @@ class App:
         self.addr_row.pack(fill="x", pady=(0, 4))
         self._fill_addr_buttons()
 
-        row2 = RoundCard(f, radius=16, fill=YELLOW_BG, outline=YELLOW_BD,
-                         height=44)
+        row2 = RoundCard(f, radius=26, fill=YELLOW_BG, outline=YELLOW_BD,
+                         height=48)
         row2.pack(fill="x", pady=(2, 0))
         r2_inner = tk.Frame(row2, bg=YELLOW_BG)
         tk.Label(r2_inner, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
@@ -217,8 +217,8 @@ class App:
         for w in self.addr_row.winfo_children():
             w.destroy()
 
-        main = RoundCard(self.addr_row, radius=16, fill=YELLOW_BG,
-                         outline=YELLOW_BD, height=42)
+        main = RoundCard(self.addr_row, radius=26, fill=YELLOW_BG,
+                         outline=YELLOW_BD, height=48)
         main.pack(side="left", fill="both", expand=True, padx=(0, 2))
         m_inner = tk.Frame(main, bg=YELLOW_BG)
         tk.Label(m_inner, text="🧭", bg=YELLOW_BG, fg=YELLOW_TX,
@@ -233,8 +233,8 @@ class App:
         for ip in self.ips:
             if ip == self.current_ip:
                 continue
-            alt = RoundCard(self.addr_row, radius=16, fill=YELLOW_BG,
-                            outline=YELLOW_BD, height=42, cursor="hand2")
+            alt = RoundCard(self.addr_row, radius=26, fill=YELLOW_BG,
+                            outline=YELLOW_BD, height=48, cursor="hand2")
             alt.pack(side="left", fill="both", expand=True, padx=(2, 0))
             a_inner = tk.Frame(alt, bg=YELLOW_BG)
             b = tk.Label(a_inner, text=ip, bg=YELLOW_BG, fg=YELLOW_TX,
