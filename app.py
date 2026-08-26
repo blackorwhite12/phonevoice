@@ -6,6 +6,7 @@
 打包：./build.command（Mac） / build.bat（Windows）
 """
 
+import math
 import subprocess
 import sys
 import tkinter as tk
@@ -54,6 +55,22 @@ def check_accessibility() -> bool:
 class RoundCard(tk.Canvas):
     """圆角卡片：Canvas 绘制圆角矩形，内部可放内容。"""
 
+    @staticmethod
+    def _round_pts(x1, y1, x2, y2, r, step=10):
+        """生成真正的圆弧圆角路径点（每个角 step 段）。"""
+        pts = []
+        corners = [
+            (x2 - r, y1 + r, 0),
+            (x2 - r, y2 - r, math.pi / 2),
+            (x1 + r, y2 - r, math.pi),
+            (x1 + r, y1 + r, 3 * math.pi / 2),
+        ]
+        for cx, cy, start in corners:
+            for i in range(step):
+                a = start + (i / step) * (math.pi / 2)
+                pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+        return pts
+
     def __init__(self, master, radius=16, fill="#ffffff", outline="#ffb6d5",
                  width=200, height=60, bg=None, **kw):
         super().__init__(master, bg=bg or BG, highlightthickness=0, bd=0,
@@ -70,9 +87,8 @@ class RoundCard(tk.Canvas):
         w, h = self.winfo_width(), self.winfo_height()
         if w <= 2 or h <= 2:
             return
-        r = self.radius
-        pts = [r, 0, w - r, 0, w, 0, w, r, w, h - r, w, h,
-               w - r, h, r, h, 0, h, 0, h - r, 0, r, 0, 0]
+        r = min(self.radius, w / 2, h / 2)
+        pts = [c for p in self._round_pts(0, 0, w, h, r) for c in p]
         self.create_polygon(pts, smooth=True, fill=self.fill,
                             outline=self.outline, width=3, tags="bg")
 
