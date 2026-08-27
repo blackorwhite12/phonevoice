@@ -1,78 +1,77 @@
-# 手机语音输入 → 电脑
+# PhoneVoice — 手机语音输入 → 电脑
 
-手机语音输入，文字直接出现在电脑当前光标处（Codex、微信、任意输入框），
-中间不用复制粘贴。
+[中文说明](README-zh.md)
 
-原理：电脑上运行一个小服务，手机浏览器打开服务页面后，用手机输入法
-（讯飞、豆包、搜狗、自带输入法等）语音说话，识别完的文字自动通过局域网
-发到电脑，电脑再模拟键盘输入到当前聚焦的应用里。
+**Speak on your phone → text appears at the cursor on your computer.
+Copy on your computer → paste directly on your phone.**
 
-## 方式一：电脑端 App（推荐）
+No accounts, no cloud, no phone app to install. Everything happens over your
+local WiFi — your texts never leave your network.
 
-1. 双击 `dist/语音输入电脑.app` 启动。
-2. 首次使用点窗口里的“打开系统设置授权”，在
-   系统设置 → 隐私与安全性 → 辅助功能 中打开“语音输入电脑”的开关
-   （授权后文字才能直接上屏；不授权则只会进剪贴板）。
-3. 用手机相机扫 App 窗口里的二维码（或点网址复制后手动输入）。
-4. 手机页面点输入框，按手机输入法里的语音键说话，说完停顿一下，
-   文字自动出现在电脑当前光标处。
+![demo](assets/demo.gif)
 
-手机端可以把页面“添加到主屏幕”，以后像 App 一样点开即用。
+## Why PhoneVoice
 
-重新打包 App：双击 `build.command`（输出在 `dist/`）。
+- 🎤 **Phone → Computer** — use your phone's voice input (Doubao, Xunfei,
+  Sogou, or any system IME). The recognized text lands at your computer's
+  cursor automatically. No more WeChat file-transfer steps.
+- 📋 **Computer → Phone** — copy anything on your computer (or select text and
+  use right-click → Services → “Sync to phone”). It shows up on your phone
+  page, ready to paste.
+- 🔒 **Private by design** — the desktop app and your phone talk directly over
+  your LAN. Nothing goes through a third-party server.
+- 📱 **Zero install on the phone** — just scan the QR code with your camera.
 
-## Windows 版
+## Quick start
 
-同一套代码支持 Windows：手机端页面完全一致，电脑端打包为 exe。
-在 Windows 电脑上双击 `build.bat` 即可打包，详见 [README-Windows.md](README-Windows.md)。
+1. Download the latest release for your platform:
+   - Windows: `PhoneVoice-windows-x64.exe`
+   - macOS (Apple Silicon): `PhoneVoice-macos-arm64.zip`
+   - macOS (Intel): `PhoneVoice-macos-x64.zip`
+2. Run the desktop app.
+3. macOS only: click **设置授权** (Grant Permission) in the app and enable
+   Accessibility in **System Settings → Privacy & Security → Accessibility**.
+   You only need to do this **once** — future updates keep the permission.
+4. Scan the QR code in the app with your phone camera (or copy the URL).
+5. Tap the input box on your phone, press your IME's voice key and speak —
+   the text appears at your computer's cursor after a short pause.
+6. Going the other way: copy on your computer (Cmd/Ctrl+C), or select text and
+   use right-click → **Services → Sync to phone**. On your phone, tap
+   **Copy to phone** and paste anywhere.
 
-## 发布到 GitHub（自动打包，Windows + Mac 都有）
+Tip: add the phone page to your home screen — it works like a native app.
 
-仓库里已配置好 GitHub Actions（`.github/workflows/build.yml`），
-推到 GitHub 后会自动打包三个版本并发布：
+## How it works
 
-- Windows：`语音输入电脑-windows-x64.zip`（exe）
-- Mac（Apple 芯片）：`语音输入电脑-macos-arm64.zip`（app）
-- Mac（Intel）：`语音输入电脑-macos-x64.zip`（app）
+- The desktop app runs a tiny HTTP server on your LAN.
+- The phone page talks to it directly — no third-party servers involved.
+- Typing is simulated at the OS level (clipboard + Cmd+V on macOS,
+  clipboard + Ctrl+V on Windows), so Chinese and multi-line text stay 100%
+  accurate.
 
-### 首次发布步骤
+## Build from source
 
-1. 在 github.com 注册/登录，点 New repository 创建一个**空仓库**
-   （建议名字 `phonevoice`，不要勾选 README/.gitignore 等初始化文件）。
-2. 在本项目目录打开终端，执行：
+- macOS: double-click `build.command` (output in `dist/`)
+- Windows: double-click `build.bat`
+- See [README-Windows.md](README-Windows.md) for Windows details.
 
-   ```bash
-   git remote add origin https://github.com/你的用户名/phonevoice.git
-   git add -A
-   git commit -m "v1.2"
-   git tag v1.2.0
-   git push origin HEAD --tags
-   ```
+## FAQ
 
-3. 到 GitHub 仓库的 Actions 页面等构建完成（约 5-10 分钟）。
-4. 到 Releases 页面即可看到下载链接，把对应平台的 zip 发给用户。
+**Why do I need Accessibility permission on macOS?**
+The app simulates keyboard input, which macOS only allows with Accessibility
+permission. Grant it once; later updates keep it.
 
-以后每次发布新版本，改完代码后执行：
+**Do my texts go through the internet?**
+No. Your phone and computer talk over your local WiFi only.
 
-```bash
-git add -A && git commit -m "说明" && git tag v1.3.0 && git push origin HEAD --tags
-```
+**Can phone and computer be on different networks?**
+Not yet — it currently works on the same LAN.
 
-自动打包完就会生成新 Release（版本号每次要递增）。
+**Why does the app briefly use my clipboard?**
+Chinese and multi-line text are inserted via clipboard + Cmd+V for 100%
+accuracy. The clipboard is restored to its previous state afterward.
 
-## 方式二：命令行版（存档于 legacy-v1/）
-
-初始可用的命令行版本完整保存在 `legacy-v1/`，独立可运行：
-
-1. 双击 `legacy-v1/start.command`（首次自动装依赖）。
-2. 给运行它的“终端”授予辅助功能权限（同上）。
-3. 手机扫终端里的二维码使用。
-
-## 常见说明
-
-- 自动发送：手机页面默认开启，适合语音输入；打字时如果误发请关掉开关。
-- 中文等非英文文本、多行文本采用“剪贴板 + Cmd+V”输入，会临时占用
-  剪贴板（保证文字 100% 准确）；纯英文短文本走直接键入。
-- 没授权辅助功能时文字会先进剪贴板，手动 Cmd+V 也能用。
-- 局域网内明文传输，请只在自家 WiFi 等可信网络使用。
-- 手机和电脑需要在同一个 WiFi/局域网内。
+**Which voice input methods work?**
+Any IME with a voice key — Doubao, Xunfei, Sogou, the system keyboard, etc.
+The phone browser does the speech recognition; PhoneVoice just delivers the
+text.

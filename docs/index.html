@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhoneVoice · 手机语音，电脑同步</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                 "Comic Sans MS", sans-serif;
+    background: linear-gradient(165deg, #ffe9f1 0%, #e8f4ff 55%, #f3e8ff 100%);
+    color: #5b4a6b; line-height: 1.7;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 22px 0 8px;
+  }
+  .logo { font-size: 22px; font-weight: 800; color: #ff7bac; letter-spacing: 1px; }
+  .logo span { color: #7fb8ff; }
+  nav a {
+    text-decoration: none; color: #5b4a6b; font-size: 14px;
+    border: 2px solid #ffb6d5; background: #fff; border-radius: 999px;
+    padding: 7px 16px; margin-left: 8px; font-weight: 600;
+  }
+  nav a:hover { background: #ffe9f1; }
+
+  .hero { text-align: center; padding: 40px 0 20px; }
+  .hero h1 { font-size: 38px; color: #ff7bac; letter-spacing: 2px; }
+  .hero h1 b { color: #7fb8ff; }
+  .hero .sub { font-size: 18px; margin: 14px 0 8px; }
+  .hero .tag {
+    font-size: 14px; color: #9b87ac; margin-bottom: 26px;
+  }
+  .cta a {
+    display: inline-block; text-decoration: none; font-weight: 700;
+    border-radius: 999px; padding: 14px 30px; font-size: 17px; margin: 6px;
+    color: #fff;
+  }
+  .cta .primary {
+    background: linear-gradient(135deg, #ff9ecb, #ff6fb0);
+    box-shadow: 0 6px 0 #e05694, 0 12px 24px rgba(255,110,175,.35);
+  }
+  .cta .gh {
+    background: linear-gradient(135deg, #a9d0ff, #7fb8ff);
+    box-shadow: 0 6px 0 #5f97d9, 0 12px 24px rgba(127,184,255,.32);
+  }
+  .demo { margin: 32px auto 0; max-width: 720px; }
+  .demo img {
+    width: 100%; border-radius: 24px; border: 3px solid #ffb6d5;
+    background: #fff; box-shadow: 0 18px 40px rgba(255,150,190,.28);
+  }
+
+  h2 {
+    text-align: center; font-size: 26px; color: #ff7bac;
+    margin: 56px 0 24px;
+  }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .card {
+    background: #fff; border: 3px solid #ffb6d5; border-radius: 22px;
+    padding: 22px 18px; box-shadow: 0 10px 24px rgba(255,150,190,.18);
+  }
+  .card .ico { font-size: 30px; }
+  .card h3 { font-size: 17px; color: #ff7bac; margin: 8px 0 6px; }
+  .card p { font-size: 14px; color: #9b87ac; }
+
+  ol.steps { max-width: 620px; margin: 0 auto; }
+  ol.steps li {
+    background: #fff; border: 2px solid #cfe4ff; border-radius: 18px;
+    padding: 12px 18px; margin: 10px 0; font-size: 15px;
+  }
+  ol.steps b { color: #7fb8ff; }
+
+  .faq { max-width: 640px; margin: 0 auto; }
+  .faq details {
+    background: #fff; border: 2px solid #ffd3e6; border-radius: 16px;
+    padding: 12px 18px; margin: 8px 0; font-size: 15px;
+  }
+  .faq summary { cursor: pointer; font-weight: 700; color: #5b4a6b; }
+  .faq p { color: #9b87ac; font-size: 14px; margin-top: 6px; }
+
+  footer { text-align: center; color: #9b87ac; font-size: 13px; margin-top: 56px; }
+  footer a { color: #ff7bac; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🎤 Phone<span>Voice</span></div>
+    <nav>
+      <a href="https://github.com/blackorwhite12/phonevoice">GitHub</a>
+      <a href="https://github.com/blackorwhite12/phonevoice/releases/latest">下载</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>手机语音，电脑同步<br><b>电脑复制，手机粘贴</b></h1>
+    <p class="sub">手机说话，文字直接打到电脑光标处；电脑复制，手机直接粘贴。</p>
+    <p class="tag">全程局域网 · 不上云 · 手机零安装（扫码即用）· Mac / Windows</p>
+    <div class="cta">
+      <a class="primary" href="https://github.com/blackorwhite12/phonevoice/releases/latest">⬇ 免费下载 v1.4.5</a>
+      <a class="gh" href="https://github.com/blackorwhite12/phonevoice">查看源码</a>
+    </div>
+    <div class="demo"><img src="../assets/demo.gif" alt="PhoneVoice 演示"></div>
+  </section>
+
+  <h2>它解决什么</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="ico">🎤</div>
+      <h3>手机语音 → 电脑</h3>
+      <p>用豆包、讯飞等输入法语音说话，文字自动出现在电脑光标处，不用再手动传。</p>
+    </div>
+    <div class="card">
+      <div class="ico">📋</div>
+      <h3>电脑复制 → 手机</h3>
+      <p>电脑上复制文字，手机页面自动收到，点一下复制，直接去粘贴。</p>
+    </div>
+    <div class="card">
+      <div class="ico">🔒</div>
+      <h3>不上云</h3>
+      <p>手机和电脑在局域网内直连，文字不出你家 WiFi，隐私更安心。</p>
+    </div>
+    <div class="card">
+      <div class="ico">🖥️</div>
+      <h3>免费开源</h3>
+      <p>Mac（Apple 芯片 + Intel）和 Windows 都支持，代码完全开源。</p>
+    </div>
+  </div>
+
+  <h2>三步用起来</h2>
+  <ol class="steps">
+    <li><b>下载并打开</b>电脑端 App（Mac 首次授权一次辅助功能即可，之后更新不用再授）。</li>
+    <li><b>手机扫二维码</b>，打开手机页面（可“添加到主屏幕”当 App 用）。</li>
+    <li><b>开说 / 开复制</b>：手机按语音键说话上屏；电脑复制文字手机即可粘贴。</li>
+  </ol>
+
+  <h2>常见问题</h2>
+  <div class="faq">
+    <details>
+      <summary>手机和电脑要连同一个 WiFi 吗？</summary>
+      <p>是的，目前走局域网，需要同一网络；异地同步在规划中。</p>
+    </details>
+    <details>
+      <summary>文字会经过云端吗？</summary>
+      <p>不会。语音识别由手机输入法完成，传输只在局域网内进行。</p>
+    </details>
+    <details>
+      <summary>Mac 为什么要授权辅助功能？</summary>
+      <p>模拟键盘输入需要辅助功能权限；只授一次，之后更新不会再要求。</p>
+    </details>
+  </div>
+
+  <footer>
+    <p>PhoneVoice · 开源免费 · <a href="https://github.com/blackorwhite12/phonevoice">GitHub</a></p>
+  </footer>
+</div>
+</body>
+</html>
