@@ -53,3 +53,7 @@ git add -A && git commit -m "说明" && git tag v1.x.x && git push origin HEAD -
   纯英文短文本直接键入。
 - 没授权辅助功能时文字会先进剪贴板，手动 Cmd+V 也能用。
 - 局域网内明文传输，请只在可信网络使用；手机和电脑需在同一 WiFi。
+
+## License
+
+MIT 协议，详见 [LICENSE](LICENSE)。

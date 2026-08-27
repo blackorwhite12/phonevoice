@@ -75,3 +75,7 @@ accuracy. The clipboard is restored to its previous state afterward.
 Any IME with a voice key — Doubao, Xunfei, Sogou, the system keyboard, etc.
 The phone browser does the speech recognition; PhoneVoice just delivers the
 text.
+
+## License
+
+MIT License — see [LICENSE](LICENSE).
