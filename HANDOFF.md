@@ -1,6 +1,6 @@
 # 手机语音输入 → 电脑 · 交接文档
 
-> 生成时间：2026-08-27（最新版本 v1.4.4）
+> 生成时间：2026-08-27（最新版本 v1.4.5）
 > 给新对话用：直接说“打开 /Users/awa12/Documents/ChatGPT/13.手机语音输入电脑直接显示/HANDOFF.md 继续语音输入项目”
 
 ## 一、项目是什么
@@ -17,11 +17,11 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.4 | ✅ 本机已安装运行 |
-| Windows x64 | v1.4.4 | ✅ 云端已构建发布 |
-| Mac（Intel） | v1.4.4 | ⏳ GitHub Actions 排队构建中（不影响） |
+| Mac（Apple 芯片） | v1.4.5 | ✅ 本机已安装运行 |
+| Windows x64 | v1.4.5 | ✅ 云端已构建发布 |
+| Mac（Intel） | v1.4.5 | ⏳ GitHub Actions 构建中（runner 已改为 macos-15-intel） |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.4
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.5
 
 ## 三、重要：发布流程新规则（用户明确要求）
 
@@ -49,6 +49,8 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
 - v1.4.2：圆角再加大，边框加粗，更卡通可爱 ← **用户满意的“上一版”**
 - v1.4.3：改用真实圆弧圆角（参数化圆弧）← **用户否掉**（“别这样”）
 - v1.4.4：恢复 v1.4.2 界面 ← 当前版本
+- v1.4.5：双向同步（电脑→手机剪贴板）+ Mac 授权只授一次（固定签名身份）+ 界面优化
+  （两个功能分区卡片、标题改“手机语音，电脑同步 / 电脑复制，手机粘贴”、二维码缩小、豆包输入法提示）
 
 ## 五、当前界面布局（v1.4.4）
 
@@ -103,9 +105,8 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
 
 ## 九、待办 / 下一步
 
-- 界面继续改进（用户将在新对话继续，方向按用户口头反馈逐条调）
 - 注意：改完先本地给用户看，满意后等“发布”再推
-- Intel Mac 版等 GitHub 排队构建完成后补发布
+- Intel Mac 产物暂未自动附加到 Release（发布 job 只依赖 Windows + Apple 芯片），需要的话后续补
 - 可选增强：配对验证码、跨网络中转、自动发现（Bonjour）、手机原生 App
 - 代码签名/公证（Mac 公证 + Windows 签名），解决首次打开拦截提示
 

@@ -1,5 +1,6 @@
 .venv/
 legacy-v1/.venv/
+legacy-v1.4.4/
 __pycache__/
 qr.png
 dist/

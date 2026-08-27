@@ -68,6 +68,12 @@ jobs:
             --add-data "icon-512.png:." \
             --add-data "apple-touch-icon.png:." \
             app.py
+      - name: 固定签名身份
+        run: |
+          codesign --force --deep --sign - \
+            --identifier com.phonevoice.app \
+            --requirements '=designated => identifier "com.phonevoice.app"' \
+            "dist/语音输入电脑.app"
       - name: 压缩为 zip
         run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "PhoneVoice-macos-arm64.zip"
       - uses: actions/upload-artifact@v4
@@ -77,7 +83,7 @@ jobs:
 
   build-macos-x64:
     name: macOS Intel
-    runs-on: macos-13
+    runs-on: macos-15-intel
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +106,12 @@ jobs:
             --add-data "icon-512.png:." \
             --add-data "apple-touch-icon.png:." \
             app.py
+      - name: 固定签名身份
+        run: |
+          codesign --force --deep --sign - \
+            --identifier com.phonevoice.app \
+            --requirements '=designated => identifier "com.phonevoice.app"' \
+            "dist/语音输入电脑.app"
       - name: 压缩为 zip
         run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "PhoneVoice-macos-x64.zip"
       - uses: actions/upload-artifact@v4

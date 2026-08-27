@@ -61,15 +61,47 @@
   }
   .opt input { width: 20px; height: 20px; accent-color: #ff7bac; }
   #msg { margin-top: 10px; font-size: 15px; color: #ff7bac; min-height: 22px; z-index: 1; }
+  .hint {
+    font-size: 13px; color: #c99700; margin-bottom: 10px; z-index: 1;
+  }
+  .rx-card {
+    background: #fff; border: 3px solid #ffb6d5; border-radius: 26px;
+    padding: 14px 16px; margin-bottom: 14px; z-index: 1;
+    box-shadow: 0 8px 24px rgba(122, 168, 255, .22);
+  }
+  .rx-title { font-size: 15px; color: #7fb8ff; font-weight: 700; margin-bottom: 8px; }
+  #received {
+    width: 100%; min-height: 90px; max-height: 220px; font-size: 16px; line-height: 1.5;
+    background: #f6fbff; color: #5b4a6b; border: 2px solid #cfe4ff; border-radius: 18px;
+    padding: 12px 14px; resize: vertical; outline: none; font-family: inherit;
+  }
+  #rxCopy {
+    margin-top: 10px; padding: 12px; font-size: 17px; width: 100%;
+    background: linear-gradient(135deg, #a9d0ff, #7fb8ff); color: #fff;
+    border: none; border-radius: 999px; letter-spacing: 1px;
+    box-shadow: 0 5px 0 #5f97d9, 0 10px 20px rgba(127,184,255,.32);
+    font-family: inherit;
+  }
+  #rxCopy:active { transform: translateY(3px); box-shadow: 0 2px 0 #5f97d9; }
+  #rxMsg { margin-top: 8px; font-size: 13px; color: #9b87ac; min-height: 18px; }
+  .ver { margin-top: 12px; font-size: 12px; color: #cdb9dc; text-align: center; z-index: 1; }
 </style>
 </head>
 <body>
 <h1>🎤 手机语音输入</h1>
 <div class="status">🐰 已经连上电脑啦，点下面的框框直接说话～</div>
+<div class="hint">💡 建议使用豆包输入法语音输入</div>
+<div class="rx-card" id="rxCard" hidden>
+  <div class="rx-title">📥 电脑复制过来了</div>
+  <textarea id="received" readonly></textarea>
+  <button id="rxCopy">📋 复制到手机</button>
+  <div id="rxMsg"></div>
+</div>
 <textarea id="input" placeholder="点这里说话哦，说完自动飞到电脑里 ✨" autofocus></textarea>
 <button id="send">✈️ 发送到电脑</button>
 <label class="opt"><input type="checkbox" id="auto" checked> 🎀 说完自动发送（打字时关掉哦）</label>
 <div id="msg"></div>
+<div id="ver" class="ver">正在连接电脑…</div>
 <script>
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
@@ -124,6 +156,79 @@ input.addEventListener('input', () => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) input.focus();
 });
+
+// 电脑 → 手机：轮询接收电脑复制/选中的文字
+const rxCard = document.getElementById('rxCard');
+const received = document.getElementById('received');
+const rxCopy = document.getElementById('rxCopy');
+const rxMsg = document.getElementById('rxMsg');
+let lastRxId = 0;
+let rxReady = false;
+
+async function pollRx() {
+  try {
+    const r = await fetch('/to-phone/latest?after=' + lastRxId);
+    const d = await r.json();
+    if (!d.ok) return;
+    if (!rxReady) {
+      lastRxId = d.id;
+      rxReady = true;
+      return;
+    }
+    if (d.text != null && d.id > lastRxId) {
+      lastRxId = d.id;
+      received.value = d.text;
+      rxCard.hidden = false;
+      rxMsg.textContent = '';
+      received.focus();
+      received.select();
+      received.setSelectionRange(0, received.value.length);
+    }
+  } catch (e) {}
+}
+setInterval(pollRx, 1500);
+pollRx();
+
+// 与电脑端同步“说完自动发送”开关（电脑端也能勾选）
+function loadAutoSend() {
+  fetch('/settings').then(r => r.json()).then(d => {
+    if (d.ok && typeof d.phone_auto_send === 'boolean' &&
+        auto.checked !== d.phone_auto_send) {
+      auto.checked = d.phone_auto_send;
+    }
+  }).catch(() => {});
+}
+function saveAutoSend() {
+  fetch('/settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({phone_auto_send: auto.checked})
+  }).catch(() => {});
+}
+auto.addEventListener('change', saveAutoSend);
+loadAutoSend();
+setInterval(loadAutoSend, 3000);
+
+rxCopy.addEventListener('click', () => {
+  const text = received.value;
+  if (!text) return;
+  received.focus();
+  received.select();
+  received.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  rxMsg.textContent = ok ? '🎉 已复制，去别处粘贴吧' : '😿 复制失败，请长按文字手动复制';
+  if (ok) { rxCard.hidden = true; received.value = ''; }
+});
+
+// 显示电脑端版本，方便确认连的是新版
+fetch('/health').then(r => r.json()).then(d => {
+  document.getElementById('ver').textContent =
+    '🖥️ 电脑端版本 v' + (d.version || '?');
+}).catch(() => {
+  document.getElementById('ver').textContent = '😵 连不上电脑端';
+});
+
 input.focus();
 </script>
 </body>

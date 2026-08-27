@@ -16,11 +16,13 @@ import socket
 import subprocess
 import sys
 import threading
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
+APP_VERSION = "1.4.5"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
@@ -36,6 +38,37 @@ def log(msg: str) -> None:
             f.write(f"[{__import__('datetime').datetime.now():%H:%M:%S}] {msg}\n")
     except Exception:
         pass
+
+
+# 电脑 → 手机：最近一次待同步到手机的文字
+TO_PHONE_LOCK = threading.Lock()
+TO_PHONE = {"id": 0, "text": ""}
+
+SETTINGS_LOCK = threading.Lock()
+SETTINGS = {"phone_auto_send": True}  # 手机页面“说完自动发送”开关
+LAST_FROM_PHONE = {"text": ""}  # 手机最近一次成功发来的文字
+
+
+def to_phone(text: str) -> int:
+    """把电脑端文字放进“待手机接收”缓存，返回自增 id。"""
+    text = (text or "").strip()
+    if not text:
+        return TO_PHONE["id"]
+    with TO_PHONE_LOCK:
+        TO_PHONE["id"] += 1
+        TO_PHONE["text"] = text
+        log(f"to_phone id={TO_PHONE['id']} text={text[:60]!r}")
+        return TO_PHONE["id"]
+
+
+def get_settings() -> dict:
+    with SETTINGS_LOCK:
+        return dict(SETTINGS)
+
+
+def set_setting(key: str, value) -> None:
+    with SETTINGS_LOCK:
+        SETTINGS[key] = value
 
 # 打包成 App 后可读的静态资源（PyInstaller 冻结环境用 _MEIPASS）
 STATIC_FILES = {
@@ -242,6 +275,19 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if self.path.startswith("/to-phone/latest"):
+            after = 0
+            try:
+                qs = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                after = int((qs.get("after") or ["0"])[0])
+            except Exception:
+                after = 0
+            with TO_PHONE_LOCK:
+                if TO_PHONE["id"] > after:
+                    self._json({"ok": True, "id": TO_PHONE["id"], "text": TO_PHONE["text"]})
+                else:
+                    self._json({"ok": True, "id": after, "text": None})
+            return
         if self.path in STATIC_FILES:
             filename, ctype = STATIC_FILES[self.path]
             data = resource_path(filename).read_bytes()
@@ -253,11 +299,43 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(data)
             return
         if self.path == "/health":
-            self._json({"ok": True})
+            self._json({"ok": True, "version": APP_VERSION})
+        elif self.path == "/settings":
+            self._json({"ok": True, **get_settings()})
         else:
             self.send_error(404)
 
     def do_POST(self):
+        if self.path == "/settings":
+            length = int(self.headers.get("Content-Length", 0))
+            try:
+                data = json.loads(self.rfile.read(length) or b"{}")
+                if "phone_auto_send" in data:
+                    set_setting("phone_auto_send", bool(data["phone_auto_send"]))
+                self._json({"ok": True, **get_settings()})
+            except Exception:
+                self._json({"ok": False, "error": "bad request"}, 400)
+            return
+        if self.path == "/to-phone":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            ctype = self.headers.get("Content-Type", "")
+            text = ""
+            if "application/json" in ctype:
+                try:
+                    text = str(json.loads(body or b"{}").get("text", ""))
+                except Exception:
+                    self._json({"ok": False, "error": "bad request"}, 400)
+                    return
+            else:
+                try:
+                    data = urllib.parse.parse_qs(body.decode("utf-8"))
+                    text = (data.get("text") or [""])[0]
+                except Exception:
+                    text = ""
+            new_id = to_phone(text)
+            self._json({"ok": True, "id": new_id})
+            return
         if self.path != "/send":
             self.send_error(404)
             return
@@ -270,6 +348,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             method, detail = type_text(text)
+            LAST_FROM_PHONE["text"] = text
             self._json({"ok": True, "method": method, "detail": detail})
         except Exception as e:
             self._json({"ok": False, "error": str(e)}, 500)

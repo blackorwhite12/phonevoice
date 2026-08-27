@@ -15,6 +15,7 @@ from PIL import Image, ImageTk
 import qrcode
 
 import server as core
+import make_sync_service
 
 IS_WINDOWS = sys.platform.startswith("win")
 
@@ -49,6 +50,32 @@ def check_accessibility() -> bool:
     except Exception as e:
         core.log(f"check_accessibility 异常: {e!r}")
         return False
+
+
+def get_clipboard_text() -> str:
+    """读取当前剪贴板文字；非文本返回空串。"""
+    try:
+        if IS_WINDOWS:
+            import pyperclip
+
+            return pyperclip.paste() or ""
+        from AppKit import NSPasteboard, NSPasteboardTypeString
+
+        return NSPasteboard.generalPasteboard().stringForType_(NSPasteboardTypeString) or ""
+    except Exception:
+        return ""
+
+
+def get_clipboard_change_count() -> int:
+    """Mac 下返回剪贴板变更计数；Windows 返回 0（改用内容比较）。"""
+    if IS_WINDOWS:
+        return 0
+    try:
+        from AppKit import NSPasteboard
+
+        return NSPasteboard.generalPasteboard().changeCount()
+    except Exception:
+        return 0
 
 
 class RoundCard(tk.Canvas):
@@ -92,13 +119,16 @@ class RoundCard(tk.Canvas):
             self.create_window(w // 2, h // 2, window=self.inner, tags="content")
 
 
-def make_btn(parent, text, color, shadow, cmd):
-    """圆角胶囊按钮：Canvas 圆角底 + 白字，悬停加深。"""
-    width = max(120, len(text) * 15 + 36)
-    card = RoundCard(parent, radius=26, fill=color, outline=color,
-                     width=width, height=46)
+def make_btn(parent, text, color, shadow, cmd, small=False):
+    """圆角胶囊按钮：Canvas 圆角底 + 白字，悬停加深。small 为小号按钮。"""
+    height = 34 if small else 46
+    font_size = 10 if small else 12
+    width = max(90 if small else 120, len(text) * 15 + 36)
+    radius = 17 if small else 26
+    card = RoundCard(parent, radius=radius, fill=color, outline=color,
+                     width=width, height=height)
     inner = tk.Label(card, text=text, bg=color, fg="#ffffff",
-                     font=(FONT, 12, "bold"), cursor="hand2")
+                     font=(FONT, font_size, "bold"), cursor="hand2")
     card.place_inner(inner)
     card._color = color
     card._shadow = shadow
@@ -129,26 +159,43 @@ class App:
         self.server = core.start_server()
         core.log(f"App 启动，路径: {sys.executable}")
 
-        root.title("手机语音输入 → 电脑")
+        if not IS_WINDOWS:
+            try:
+                svc_path, created = make_sync_service.ensure()
+                core.log(
+                    f"右键 Service {'已安装' if created else '已存在'}: {svc_path}"
+                )
+            except Exception as e:
+                core.log(f"安装右键 Service 失败: {e!r}")
+
+        root.title(f"手机语音输入 → 电脑 v{core.APP_VERSION}")
         root.configure(bg=BG)
         root.resizable(False, False)
 
+        self.clip_auto = tk.BooleanVar(value=True)
+        self.phone_auto = tk.BooleanVar(
+            value=core.get_settings().get("phone_auto_send", True)
+        )
+        self.phone_auto.trace_add("write", self._on_phone_auto_change)
         self._build_ui()
+        self._last_clip_count = get_clipboard_change_count()
+        self._last_clip_text = get_clipboard_text().strip()
+        self._watch_clipboard()
 
     # ---------- 界面 ----------
     def _build_ui(self):
         f = tk.Frame(self.root, bg=BG, padx=30, pady=22)
         f.pack(fill="both", expand=True)
 
-        # 标题（Demo 同款：粉色、圆体、居中）
-        tk.Label(f, text="🎤 手机语音输入", bg=BG, fg="#ff7bac",
+        # 标题（两行，无图标）
+        tk.Label(f, text="手机语音，电脑同步", bg=BG, fg="#ff7bac",
                  font=(FONT, 26, "bold")).pack()
-        tk.Label(f, text="💻 电脑同步显示", bg=BG, fg="#ff7bac",
+        tk.Label(f, text="电脑复制，手机粘贴", bg=BG, fg="#ff7bac",
                  font=(FONT, 26, "bold")).pack(pady=(0, 8))
 
         # 二维码白卡片（圆角 + 粉色粗边框）
         qr_card = RoundCard(f, radius=38, fill=CARD, outline=CARD_BD,
-                            width=320, height=330)
+                            width=320, height=246)
         qr_card.pack(pady=(6, 0))
         qr_inner = tk.Frame(qr_card, bg=CARD)
         self.qr_label = tk.Label(qr_inner, bg=CARD)
@@ -156,9 +203,17 @@ class App:
         qr_card.place_inner(qr_inner)
         self._update_qr()
 
-        # 提示
-        tk.Label(f, text="用手机相机扫二维码，语音直接打到电脑上 🐰",
-                 bg=BG, fg=MUTED, font=(FONT, 12)).pack(pady=(12, 6))
+        # 提示：用手机相机扫二维码（“相机”加大加粗），下面跟豆包建议
+        tip_row = tk.Frame(f, bg=BG)
+        tip_row.pack(pady=(10, 0))
+        tk.Label(tip_row, text="用手机", bg=BG, fg=MUTED,
+                 font=(FONT, 12)).pack(side="left")
+        tk.Label(tip_row, text="相机", bg=BG, fg="#ff7bac",
+                 font=(FONT, 16, "bold")).pack(side="left")
+        tk.Label(tip_row, text="扫二维码，语音直接打到电脑上 🐰",
+                 bg=BG, fg=MUTED, font=(FONT, 12)).pack(side="left")
+        tk.Label(f, text="💡 建议使用豆包输入法语音输入", bg=BG, fg="#c99700",
+                 font=(FONT, 12)).pack(pady=(3, 0))
 
         # 地址区：两个等大黄按钮（主 + 备用）+ Windows 完整网址
         self.addr_row = tk.Frame(f, bg=BG)
@@ -180,19 +235,33 @@ class App:
                  font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 10))
         row2.place_inner(r2_inner)
 
-        # 状态
-        self.status_label = tk.Label(f, text="", bg=BG, font=(FONT, 12))
-        self.status_label.pack(pady=(12, 2))
+        # 授权状态 + 设置授权按钮（放同一行）
+        auth_row = tk.Frame(f, bg=BG)
+        auth_row.pack(pady=(12, 2))
+        self.status_label = tk.Label(auth_row, text="", bg=BG, font=(FONT, 12))
+        self.status_label.pack(side="left")
+        if not IS_WINDOWS:
+            make_btn(auth_row, "🍬 设置授权", PINK, PINK_BD,
+                     self.open_settings, small=True).pack(side="left", padx=(10, 0))
         self.update_status()
 
-        # 操作按钮（胶囊风）
-        btn_row = tk.Frame(f, bg=BG)
-        btn_row.pack(pady=(4, 6))
-        if not IS_WINDOWS:
-            make_btn(btn_row, "🍬 打开系统设置授权", PINK, PINK_BD,
-                     self.open_settings).pack(side="left", padx=6)
-        make_btn(btn_row, "👋 退出", BLUE, BLUE_BD,
-                 self.on_close).pack(side="left", padx=6)
+        # 两个功能分区：一眼看懂两个方向
+        self._build_feature_row(
+            f,
+            "🎤 手机语音 → 电脑",
+            "手机用豆包输入法语音说话，文字自动到电脑光标处",
+            self.phone_auto,
+            "立即同步到电脑",
+            self.sync_to_computer_now,
+        )
+        self._build_feature_row(
+            f,
+            "📋 电脑复制 → 手机",
+            "电脑复制/右键选中，文字自动同步到手机剪贴板",
+            self.clip_auto,
+            "立即同步到手机",
+            self.sync_clipboard_now,
+        )
 
         tip_txt = (
             "手机和电脑连同一个 WiFi；打不开就在 Windows 防火墙放行本程序"
@@ -200,15 +269,45 @@ class App:
             else "手机和电脑连同一个 WiFi 就行啦"
         )
         tk.Label(f, text=tip_txt, bg=BG, fg=MUTED, font=(FONT, 10)
-                 ).pack(pady=(2, 0))
+                 ).pack(pady=(8, 0))
+        tk.Label(f, text=f"版本 v{core.APP_VERSION}", bg=BG, fg=MUTED,
+                 font=(FONT, 9)).pack(pady=(3, 0))
 
         if not IS_WINDOWS and self._not_in_apps_dir():
             tk.Label(f, text="😿 从临时位置运行：请把 App 移到“应用程序”文件夹",
-                     bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(4, 0))
+                     bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(5, 0))
+
+        # 退出放最下面，小巧低调
+        make_btn(f, "👋 退出", MUTED, "#84769a", self.on_close,
+                 small=True).pack(pady=(12, 0))
+
+    def _build_feature_row(self, parent, title, hint, var, btn_text, cmd):
+        """功能分区卡：标题 + 用法说明 + 自动同步勾选 + 立即同步按钮。"""
+        card = RoundCard(parent, radius=20, fill=CARD, outline=CARD_BD,
+                         width=320, height=98)
+        card.pack(pady=(6, 0))
+        inner = tk.Frame(card, bg=CARD)
+        tk.Label(inner, text=title, bg=CARD, fg="#ff7bac",
+                 font=(FONT, 12, "bold")).pack(anchor="w",
+                                               padx=(14, 0), pady=(7, 0))
+        tk.Label(inner, text=hint, bg=CARD, fg=MUTED,
+                 font=(FONT, 9)).pack(anchor="w", padx=(14, 0))
+        ctrl = tk.Frame(inner, bg=CARD)
+        ctrl.pack(fill="x", padx=(10, 8), pady=(3, 7))
+        tk.Checkbutton(ctrl, text="自动同步", variable=var, bg=CARD, fg=FG,
+                       font=(FONT, 10), activebackground=CARD, selectcolor=CARD,
+                       highlightthickness=0, bd=0).pack(side="left")
+        make_btn(ctrl, btn_text, BLUE, BLUE_BD, cmd, small=True).pack(side="right")
+        card.place_inner(inner)
+        return card
 
     # ---------- 功能 ----------
     def _update_qr(self):
-        qr_img = qrcode.make(self.url).convert("RGB").resize((270, 270), Image.NEAREST)
+        qr = qrcode.QRCode(border=1)  # 缩小二维码四周留白，图案更大更好扫
+        qr.add_data(self.url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        qr_img = qr_img.resize((220, 220), Image.NEAREST)
         self.qr_photo = ImageTk.PhotoImage(qr_img)
         self.qr_label.configure(image=self.qr_photo)
 
@@ -267,14 +366,87 @@ class App:
 
     def update_status(self):
         if check_accessibility():
-            text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权，可以直接语音输入啦"
+            text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权，可以直接用啦"
             self.status_label.config(text=text, fg=GREEN)
         else:
+            self.status_label.config(text="😿 未授权，点右边开启", fg=RED)
+        # 手机页可能改过“自动发送”，这里跟着同步
+        try:
+            val = bool(core.get_settings().get("phone_auto_send", True))
+            if val != self.phone_auto.get():
+                self.phone_auto.set(val)
+        except Exception:
+            pass
+        self.root.after(3000, self.update_status)
+
+    def _on_phone_auto_change(self, *_a):
+        """桌面端勾选“手机→电脑 自动同步”时写回服务端设置。"""
+        try:
+            core.set_setting("phone_auto_send", bool(self.phone_auto.get()))
+        except Exception:
+            pass
+
+    def _watch_clipboard(self):
+        """监听剪贴板变化，自动同步到手机（可开关）。"""
+        if IS_WINDOWS:
+            def poll():
+                if self.clip_auto.get():
+                    try:
+                        text = get_clipboard_text().strip()
+                        if text and text != self._last_clip_text:
+                            self._last_clip_text = text
+                            core.to_phone(text)
+                    except Exception:
+                        pass
+                self.root.after(1500, poll)
+
+            self.root.after(1500, poll)
+            return
+
+        def poll():
+            if self.clip_auto.get():
+                try:
+                    count = get_clipboard_change_count()
+                    if count != self._last_clip_count:
+                        self._last_clip_count = count
+                        text = get_clipboard_text().strip()
+                        if text:
+                            core.to_phone(text)
+                except Exception:
+                    pass
+            self.root.after(800, poll)
+
+        self.root.after(800, poll)
+
+    def sync_clipboard_now(self):
+        text = get_clipboard_text().strip()
+        if not text:
+            self.status_label.config(text="😿 剪贴板里没有文字哦", fg=RED)
+            self.root.after(2000, self.update_status)
+            return
+        core.to_phone(text)
+        self.status_label.config(text="✅ 已同步到手机，去手机粘贴吧", fg=GREEN)
+        self.root.after(2000, self.update_status)
+
+    def sync_to_computer_now(self):
+        """把手机最近一次发来的文字，再同步一次到电脑光标处。"""
+        text = core.LAST_FROM_PHONE.get("text", "").strip()
+        if not text:
             self.status_label.config(
-                text="😿 还没授权：点“打开系统设置授权”，允许控制键盘哦",
+                text="😿 手机上还没发过文字，先在手机说话/发送一次",
                 fg=RED,
             )
-        self.root.after(3000, self.update_status)
+            self.root.after(2500, self.update_status)
+            return
+        method, _detail = core.type_text(text)
+        if method == "clipboard":
+            self.status_label.config(
+                text="😿 没授权键盘权限，文字已进剪贴板，手动 Cmd+V",
+                fg=RED,
+            )
+        else:
+            self.status_label.config(text="✅ 已同步到电脑光标处", fg=GREEN)
+        self.root.after(2500, self.update_status)
 
     def open_settings(self):
         subprocess.run(
