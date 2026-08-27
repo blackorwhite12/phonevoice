@@ -1,6 +1,6 @@
 # 手机语音输入 → 电脑 · 交接文档
 
-> 生成时间：2026-08-26（最新版本 v1.3.5）
+> 生成时间：2026-08-27（最新版本 v1.4.4）
 > 给新对话用：直接说“打开 /Users/awa12/Documents/ChatGPT/13.手机语音输入电脑直接显示/HANDOFF.md 继续语音输入项目”
 
 ## 一、项目是什么
@@ -10,76 +10,110 @@
 
 - 手机端：零安装，相机扫二维码打开网页，用手机输入法语音键说话
 - 电脑端：桌面 App（二维码 + 权限引导），局域网传输，自动模拟键入
-- 界面风格：卡通可爱风（暖奶油底、白卡片、圆体字、黄/蓝地址条）
+- 界面风格：与“在线 Demo”统一的可爱卡通风
+  （奶油粉背景、白卡片粉粗边框、圆角、粉/蓝胶囊按钮、圆体字、emoji 点缀）
 
 ## 二、当前状态
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.3.5 | ✅ 本机验证可用（已装在 /Applications） |
-| Windows x64 | v1.3.5 | ✅ 云端已构建发布 |
-| Mac（Intel） | v1.3.5 | ⏳ GitHub Actions 排队构建中（不影响） |
+| Mac（Apple 芯片） | v1.4.4 | ✅ 本机已安装运行 |
+| Windows x64 | v1.4.4 | ✅ 云端已构建发布 |
+| Mac（Intel） | v1.4.4 | ⏳ GitHub Actions 排队构建中（不影响） |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.3.5
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.4
 
-## 三、文件结构
+## 三、重要：发布流程新规则（用户明确要求）
+
+> **不要改一下就发布！** 界面改动先在本地改好、用户确认满意后，
+> **等用户明确说“发布”**，才执行打 tag + push。
+> 用户原话：“不要改一下就发布一下，改好了，我叫你发布你再发布。”
+
+发布命令（仅在用户说“发布”后执行）：
+
+```bash
+git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD --tags
+```
+
+## 四、界面迭代历史（重要背景）
+
+- v1.3.0：卡通可爱风初版（手机页面 + App 浅色化）
+- v1.3.1：卡通字体、两行标题+弯箭头、Safari 黄色地址栏、浅蓝复制大按钮、圆角窗口（自绘，后被否）
+- v1.3.2：视觉重设计（放弃自绘圆角窗口，改系统窗口 + 暖奶油底 + 白卡片 + 黄/蓝双地址条）
+- v1.3.3：地址区分块（上块 Mac Safari：🍎🧭+IP；下块 Windows：🪟+完整 URL；备用 IP 黄底）
+- v1.3.4：标题去图标居中放大；地址区改两个等大黄按钮
+- v1.3.5：去掉苹果图标，只留 Safari 图标（🧭 + IP）
+- v1.4.0：按用户提供的在线 Demo 页面（14.全息作品集/demo-phonevoice/index.html）
+  统一界面风格：奶油粉、白卡片粉粗边框、粉/蓝胶囊按钮（Label 模拟）
+- v1.4.1：所有框圆角化（RoundCard：Canvas 绘制圆角矩形）
+- v1.4.2：圆角再加大，边框加粗，更卡通可爱 ← **用户满意的“上一版”**
+- v1.4.3：改用真实圆弧圆角（参数化圆弧）← **用户否掉**（“别这样”）
+- v1.4.4：恢复 v1.4.2 界面 ← 当前版本
+
+## 五、当前界面布局（v1.4.4）
+
+从上到下：
+1. 标题（粉色圆体）：🎤 手机语音输入 / 💻 电脑同步显示
+2. 二维码白卡片（圆角 38 + 粉色粗边框 3px）
+3. 提示：用手机相机扫二维码 🐰
+4. 两个等大黄色圆角按钮（🧭 Safari + 主 IP；备用 IP，点击切换二维码）
+5. Windows 完整网址黄条（🪟 + http://… + 复制）
+6. 状态文字（已授权/未授权）
+7. 操作按钮（🍬 打开系统设置授权 粉色 / 👋 退出 蓝色，胶囊圆角）
+8. 底部提示小字
+
+## 六、文件结构
 
 ```
 13.手机语音输入电脑直接显示/
 ├── server.py          # 核心服务：HTTP + 模拟输入（Mac/Windows 双平台分支）
-├── app.py             # 桌面 App 界面（tkinter，卡通风）
-├── index.html         # 手机端输入页面（卡通风，PWA 支持）
-├── qr.html            # 手机端二维码页面
-├── manifest.json      # PWA 清单
+├── app.py             # 桌面 App 界面（tkinter + RoundCard 圆角卡片）
+├── index.html         # 手机端输入页面（可爱卡通风，PWA 支持）
+├── qr.html / manifest.json / icon-*.png   # 手机端配套资源
 ├── build.command      # Mac 本地打包脚本（出 .app）
 ├── build.bat          # Windows 本地打包脚本（出 exe）
 ├── .github/workflows/build.yml  # GitHub Actions 云端自动打包三平台
 ├── PROGRESS.md        # 项目进度记录
 ├── HANDOFF.md         # 本文档
-├── legacy-v1/         # 初始命令行版存档（可独立运行）
+├── legacy-v1/         # 初始命令行版存档
 ├── releases/v1.2.8/   # 本地交付物存档
 └── dist/              # 本地打包产物
 ```
 
-## 四、技术要点（新对话必读）
+## 七、技术要点（新对话必读）
 
 1. **输入方案**：
-   - Mac：NSPasteboard 写剪贴板（进程内，不用 pbcopy）→ AppleScript 模拟 Cmd+V；
-     CGEvent 直接注入作为兜底。中文走剪贴板粘贴，保真 100%。
+   - Mac：NSPasteboard 写剪贴板（进程内）→ AppleScript 模拟 Cmd+V；CGEvent 兜底。
+     中文走剪贴板粘贴，保真 100%。
    - Windows：pyperclip 写剪贴板 → keyboard 模拟 Ctrl+V。
 2. **辅助功能授权（Mac）**：TCC 权限按 App 路径绑定，打包新版后必须重新授权；
-   授权后要重启 App 才生效（这是踩过的坑）。App 内已有引导按钮。
-3. **多网卡 IP**：App 用 server.get_all_lan_ips() 列出所有局域网 IP，
-   主地址（带 Safari 图标）+ 备用地址（黄底按钮）并排显示，点击切换二维码。
-4. **打包**：
-   - Mac：./build.command（PyInstaller，出 dist/语音输入电脑.app）
-   - Windows：build.bat（PyInstaller --onefile）
-   - 云端：push tag vX.Y.Z 自动构建发布（Windows exe + Mac arm64 + Mac Intel）
-5. **GitHub 发布**（仓库 blackorwhite12/phonevoice）：
+   授权后要重启 App 才生效。App 内已有引导按钮。
+3. **多网卡 IP**：server.get_all_lan_ips() 列出所有局域网 IP；
+   主地址（🧭 Safari）+ 备用地址并排圆角黄按钮，点击切换二维码，二维码随切换更新。
+4. **圆角实现**：app.py 的 RoundCard 类（Canvas 绘制圆角矩形 + place_inner 放内容）。
+   当前用 polygon smooth 近似圆角（v1.4.2 方案）；真圆弧方案（v1.4.3）被用户否掉。
+5. **本地打包**：Mac ./build.command；Windows build.bat。
+6. **手机页面改动**：手机刷新即可生效（App 内嵌页面从本地服务读取）。
 
-   ```bash
-   git add -A && git commit -m "说明" && git tag v1.3.6 && git push origin HEAD --tags
-   ```
-
-6. **手机页面改动后**：手机刷新页面即可生效（App 内嵌页面从本地服务读取）。
-
-## 五、使用流程（用户视角）
+## 八、使用流程（用户视角）
 
 1. 双击 App → 首次授权辅助功能（Mac）→ 重启 App
 2. 手机相机扫 App 里的二维码（或点黄色网址复制）
 3. 先在电脑上点一下输入位置，再在手机上说，停顿后文字自动上屏
 
-## 六、待办 / 下一步
+## 九、待办 / 下一步
 
-- 界面继续按用户反馈微调（当前焦点：标题/地址条/按钮样式）
+- 界面继续改进（用户将在新对话继续，方向按用户口头反馈逐条调）
+- 注意：改完先本地给用户看，满意后等“发布”再推
 - Intel Mac 版等 GitHub 排队构建完成后补发布
 - 可选增强：配对验证码、跨网络中转、自动发现（Bonjour）、手机原生 App
 - 代码签名/公证（Mac 公证 + Windows 签名），解决首次打开拦截提示
 
-## 七、已知问题
+## 十、已知问题
 
 - 中文/多行文本走剪贴板粘贴，会临时占用剪贴板（正常现象）
 - 未签名：Mac 首次右键打开 + 授权辅助功能；Windows 有 SmartScreen 提示
 - 手机与电脑必须在同一 WiFi；跨网络暂不支持
 - Windows 首次运行防火墙需放行（专用网络）
-- Mac 的 Tk 按钮背景不受控（系统白底），按钮配色以文字色和卡片为主
+- Mac 的 Tk 原生按钮背景不受控（系统白底），所以按钮用 Label/RoundCard 自绘
+- GitHub 网络不稳定时 push 可能超时，重试即可
