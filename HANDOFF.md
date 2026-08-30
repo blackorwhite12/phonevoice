@@ -28,10 +28,16 @@
 > **不要改一下就发布！** 界面改动先在本地改好、用户确认满意后，
 > **等用户明确说“发布”**，才执行打 tag + push。
 > 用户原话：“不要改一下就发布一下，改好了，我叫你发布你再发布。”
+>
+> **每次发布前，安装包必须先在本地留一份！**（用户明确要求，2026-08-28 新增）
+> 上传 GitHub 的同时，把 Mac 安装包（.pkg / .zip）和 Windows 安装包（.exe）
+> 复制到 `releases/vX.Y.Z/` 文件夹，命名带版本号，例如 `语音输入电脑-v1.4.5.pkg`、
+> `PhoneVoice-windows-x64-v1.4.5.exe`。GitHub 只是云上备份，本地 `releases/` 才是主存档。
 
 发布命令（仅在用户说“发布”后执行）：
 
 ```bash
+mkdir -p releases/vX.Y.Z && cp <安装包> releases/vX.Y.Z/   # 第一步：本地留档
 git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD --tags
 ```
 

@@ -177,6 +177,7 @@ class App:
             value=core.get_settings().get("phone_auto_send", True)
         )
         self.phone_auto.trace_add("write", self._on_phone_auto_change)
+        self._net_warn = None
         self._build_ui()
         self._last_clip_count = get_clipboard_change_count()
         self._last_clip_text = get_clipboard_text().strip()
@@ -277,6 +278,15 @@ class App:
             tk.Label(f, text="😿 从临时位置运行：请把 App 移到“应用程序”文件夹",
                      bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(5, 0))
 
+        # Windows 常见问题：没拿到局域网 IP（虚拟网卡/VPN 干扰）时给醒目提示
+        if self.ips == ["127.0.0.1"]:
+            self._net_warn = tk.Label(
+                f,
+                text="😿 没找到局域网 IP：请检查电脑网络（WiFi/网线），手机才能连上",
+                bg=BG, fg=RED, font=(FONT, 10),
+            )
+            self._net_warn.pack(pady=(5, 0))
+
         # 退出放最下面，小巧低调
         make_btn(f, "👋 退出", MUTED, "#84769a", self.on_close,
                  small=True).pack(pady=(12, 0))
@@ -365,6 +375,7 @@ class App:
         self.root.after(2000, self.update_status)
 
     def update_status(self):
+        self._refresh_ips()
         if check_accessibility():
             text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权，可以直接用啦"
             self.status_label.config(text=text, fg=GREEN)
@@ -378,6 +389,21 @@ class App:
         except Exception:
             pass
         self.root.after(3000, self.update_status)
+
+    def _refresh_ips(self):
+        """网卡变化（如开机后才连上 WiFi）时，自动更新地址和二维码。"""
+        ips = core.get_all_lan_ips()
+        if not ips or ips == self.ips:
+            return
+        self.ips = ips
+        self.current_ip = ips[0]
+        self.url = f"http://{self.current_ip}:{core.PORT}/"
+        self.url_label.configure(text=self.url)
+        self._fill_addr_buttons()
+        self._update_qr()
+        if self._net_warn is not None and self.current_ip != "127.0.0.1":
+            self._net_warn.destroy()
+            self._net_warn = None
 
     def _on_phone_auto_change(self, *_a):
         """桌面端勾选“手机→电脑 自动同步”时写回服务端设置。"""

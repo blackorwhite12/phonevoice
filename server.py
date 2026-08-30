@@ -88,27 +88,43 @@ def resource_path(name: str) -> Path:
     return Path(base) / name
 
 
+def _is_usable_lan_ip(ip: str) -> bool:
+    """过滤回环、链路本地等手机连不上的地址。"""
+    if not ip or ":" in ip:
+        return False
+    return not (
+        ip.startswith("127.")
+        or ip.startswith("169.254.")
+        or ip.startswith("0.")
+        or ip.startswith("255.")
+    )
+
+
 def get_all_lan_ips() -> list[str]:
-    """列出本机所有 IPv4 局域网地址（过滤回环）。"""
+    """列出本机所有可用 IPv4 局域网地址；主网卡 IP 排最前。"""
     ips: set[str] = set()
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None):
-            ip = info[4][0]
-            if ":" not in ip and not ip.startswith("127."):
-                ips.add(ip)
-    except Exception:
-        pass
-    # UDP 技巧补充主网卡 IP（不真正发包，只用来选路由）
+    primary = None
+    # UDP 路由技巧：不真正发包，只拿到“上网用的那张网卡”的 IP，排最前
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
-        if ":" not in ip and not ip.startswith("127."):
+        if _is_usable_lan_ip(ip):
+            primary = ip
             ips.add(ip)
     except OSError:
         pass
     finally:
         s.close()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            ip = info[4][0]
+            if _is_usable_lan_ip(ip):
+                ips.add(ip)
+    except Exception:
+        pass
+    if primary:
+        return [primary] + sorted(ips - {primary})
     return sorted(ips)
 
 
@@ -283,10 +299,10 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 after = 0
             with TO_PHONE_LOCK:
-                if TO_PHONE["id"] > after:
+                if TO_PHONE["id"] > after and TO_PHONE["text"]:
                     self._json({"ok": True, "id": TO_PHONE["id"], "text": TO_PHONE["text"]})
                 else:
-                    self._json({"ok": True, "id": after, "text": None})
+                    self._json({"ok": True, "id": max(after, TO_PHONE["id"]), "text": None})
             return
         if self.path in STATIC_FILES:
             filename, ctype = STATIC_FILES[self.path]
@@ -335,6 +351,19 @@ class Handler(BaseHTTPRequestHandler):
                     text = ""
             new_id = to_phone(text)
             self._json({"ok": True, "id": new_id})
+            return
+        if self.path == "/to-phone/ack":
+            # 手机已复制/查看后确认，清除缓存，避免下次打开重复显示旧内容
+            length = int(self.headers.get("Content-Length", 0))
+            try:
+                data = json.loads(self.rfile.read(length) or b"{}")
+                seen = int(data.get("id", 0))
+            except Exception:
+                seen = 0
+            with TO_PHONE_LOCK:
+                if seen >= TO_PHONE["id"]:
+                    TO_PHONE["text"] = ""
+            self._json({"ok": True})
             return
         if self.path != "/send":
             self.send_error(404)

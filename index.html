@@ -163,18 +163,12 @@ const received = document.getElementById('received');
 const rxCopy = document.getElementById('rxCopy');
 const rxMsg = document.getElementById('rxMsg');
 let lastRxId = 0;
-let rxReady = false;
 
 async function pollRx() {
   try {
     const r = await fetch('/to-phone/latest?after=' + lastRxId);
     const d = await r.json();
     if (!d.ok) return;
-    if (!rxReady) {
-      lastRxId = d.id;
-      rxReady = true;
-      return;
-    }
     if (d.text != null && d.id > lastRxId) {
       lastRxId = d.id;
       received.value = d.text;
@@ -183,6 +177,9 @@ async function pollRx() {
       received.focus();
       received.select();
       received.setSelectionRange(0, received.value.length);
+    } else if (d.id > lastRxId) {
+      // 服务端已前进但没有待显示文本（例如已被确认过），跳过旧 id
+      lastRxId = d.id;
     }
   } catch (e) {}
 }
@@ -218,7 +215,16 @@ rxCopy.addEventListener('click', () => {
   let ok = false;
   try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
   rxMsg.textContent = ok ? '🎉 已复制，去别处粘贴吧' : '😿 复制失败，请长按文字手动复制';
-  if (ok) { rxCard.hidden = true; received.value = ''; }
+  if (ok) {
+    rxCard.hidden = true;
+    received.value = '';
+    // 通知电脑端已确认，下次打开不再重复显示
+    fetch('/to-phone/ack', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: lastRxId})
+    }).catch(() => {});
+  }
 });
 
 // 显示电脑端版本，方便确认连的是新版
