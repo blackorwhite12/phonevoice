@@ -1,6 +1,6 @@
 # 手机语音输入 → 电脑 · 交接文档
 
-> 生成时间：2026-08-27（最新版本 v1.4.5）
+> 生成时间：2026-08-30（最新版本 v1.4.6）
 > 给新对话用：直接说“打开 /Users/awa12/Documents/ChatGPT/13.手机语音输入电脑直接显示/HANDOFF.md 继续语音输入项目”
 
 ## 一、项目是什么
@@ -17,11 +17,11 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.5 | ✅ 本机已安装运行 |
-| Windows x64 | v1.4.5 | ✅ 云端已构建发布 |
-| Mac（Intel） | v1.4.5 | ⏳ GitHub Actions 构建中（runner 已改为 macos-15-intel） |
+| Mac（Apple 芯片） | v1.4.6 | ✅ 云端已构建发布 |
+| Windows x64 | v1.4.6 | ✅ 云端已构建发布 |
+| Mac（Intel） | v1.4.6 | ✅ 云端已构建发布 |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.5
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.6
 
 ## 三、重要：发布流程新规则（用户明确要求）
 
@@ -57,6 +57,8 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
 - v1.4.4：恢复 v1.4.2 界面 ← 当前版本
 - v1.4.5：双向同步（电脑→手机剪贴板）+ Mac 授权只授一次（固定签名身份）+ 界面优化
   （两个功能分区卡片、标题改“手机语音，电脑同步 / 电脑复制，手机粘贴”、二维码缩小、豆包输入法提示）
+- v1.4.6：修复两个 bug——① 手机页首次轮询不再跳过已有内容（Mac 首次复制后必显示）
+  ② Windows 局域网 IP 选择更稳（过滤虚拟网卡/链路本地地址、主网卡排前、自动刷新、无 IP 时红字提示）
 
 ## 五、当前界面布局（v1.4.4）
 

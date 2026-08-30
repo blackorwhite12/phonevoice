@@ -22,7 +22,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-APP_VERSION = "1.4.5"  # 显示用版本号，与 git tag 保持一致
+APP_VERSION = "1.4.6"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
