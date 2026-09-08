@@ -23,7 +23,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-APP_VERSION = "1.4.6"  # 显示用版本号，与 git tag 保持一致
+APP_VERSION = "1.4.7"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
@@ -133,6 +133,8 @@ def _looks_like_virtual_ip(ip: str) -> bool:
         return True
     if ip.startswith("192.168.56.") or ip.startswith("192.168.99."):
         return True  # VirtualBox 主机网络 / Docker 默认
+    if ip.startswith("198.18.") or ip.startswith("198.19."):
+        return True  # VPN/隧道（RFC 2544 基准段）常用
     try:
         a, b = int(ip.split(".")[0]), int(ip.split(".")[1])
     except Exception:
@@ -170,10 +172,16 @@ def get_all_lan_ips() -> list[str]:
         except Exception:
             pass
 
-    ordered: list[str] = [primary] if primary else []
-    rest = sorted(candidates - set(ordered))
-    real = [ip for ip in rest if not _looks_like_virtual_ip(ip)]
-    fake = [ip for ip in rest if _looks_like_virtual_ip(ip)]
+    ordered: list[str] = []
+    rest = set(candidates)
+    if primary and not _looks_like_virtual_ip(primary):
+        ordered = [primary]
+        rest = candidates - {primary}
+    real = sorted(ip for ip in rest if not _looks_like_virtual_ip(ip))
+    fake = sorted(ip for ip in rest if _looks_like_virtual_ip(ip))
+    if primary and _looks_like_virtual_ip(primary):
+        fake.append(primary)  # 虚拟主网卡放最后兜底
+        fake = sorted(set(fake))
     return ordered + real + fake
 
 
