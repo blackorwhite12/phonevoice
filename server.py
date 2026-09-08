@@ -12,6 +12,7 @@
 
 import json
 import os
+import queue
 import socket
 import subprocess
 import sys
@@ -27,6 +28,7 @@ APP_VERSION = "1.4.7"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
+IS_LINUX = sys.platform.startswith("linux")
 if IS_WINDOWS:
     LOG_PATH = Path.home() / "phonevoice.log"
 
@@ -48,6 +50,20 @@ TO_PHONE = {"id": 0, "text": ""}
 SETTINGS_LOCK = threading.Lock()
 SETTINGS = {"phone_auto_send": True}  # 手机页面“说完自动发送”开关
 LAST_FROM_PHONE = {"text": ""}  # 手机最近一次成功发来的文字
+
+# Linux（UOS）：把“复制 + Ctrl+V”放到 tkinter 主线程做（tk 剪贴板非线程安全）
+LINUX_PASTE_QUEUE = queue.Queue()
+
+
+def type_text_linux(text: str) -> tuple[str, str]:
+    """Linux/UOS：入队让 App 主线程写剪贴板并模拟 Ctrl+V，等它完成。"""
+    done = threading.Event()
+    result: dict = {}
+    LINUX_PASTE_QUEUE.put((text, done, result))
+    if not done.wait(timeout=10):
+        log("linux paste 超时")
+        return "clipboard", "粘贴超时：请确认电脑端窗口在最前，且已点到要输入的地方"
+    return result.get("method", "clipboard"), result.get("detail", "")
 
 
 def to_phone(text: str) -> int:
@@ -225,6 +241,8 @@ def type_text(text: str) -> tuple[str, str]:
         return "test", ""
     if IS_WINDOWS:
         return type_text_windows(text)
+    if IS_LINUX:
+        return type_text_linux(text)
 
     # 中文等非 ASCII、多行、含制表符的文本一律用“剪贴板 + Cmd+V”，内容保真；
     # 直接键入（keystroke）只用于纯英文单行，避免中文被拆成乱码按键

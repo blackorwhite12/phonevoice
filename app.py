@@ -18,6 +18,8 @@ import server as core
 import make_sync_service
 
 IS_WINDOWS = sys.platform.startswith("win")
+IS_MAC = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
 
 # ---------- Demo 同款色板 ----------
 BG = "#ffe9f1"          # 奶油粉背景
@@ -39,7 +41,7 @@ FONT = "Comic Sans MS" if IS_WINDOWS else "Wawati SC"
 
 def check_accessibility() -> bool:
     """用系统 API 检测当前进程是否有辅助功能权限。"""
-    if IS_WINDOWS:
+    if IS_WINDOWS or IS_LINUX:
         return True
     try:
         from ApplicationServices import AXIsProcessTrusted
@@ -52,13 +54,17 @@ def check_accessibility() -> bool:
         return False
 
 
-def get_clipboard_text() -> str:
+def get_clipboard_text(root=None) -> str:
     """读取当前剪贴板文字；非文本返回空串。"""
     try:
         if IS_WINDOWS:
             import pyperclip
 
             return pyperclip.paste() or ""
+        if IS_LINUX:
+            if root is None:
+                return ""
+            return (root.clipboard_get() or "").strip()
         from AppKit import NSPasteboard, NSPasteboardTypeString
 
         return NSPasteboard.generalPasteboard().stringForType_(NSPasteboardTypeString) or ""
@@ -159,7 +165,7 @@ class App:
         self.server = core.start_server()
         core.log(f"App 启动，路径: {sys.executable}")
 
-        if not IS_WINDOWS:
+        if IS_MAC:
             try:
                 svc_path, created = make_sync_service.ensure()
                 core.log(
@@ -167,6 +173,9 @@ class App:
                 )
             except Exception as e:
                 core.log(f"安装右键 Service 失败: {e!r}")
+
+        if IS_LINUX:
+            self.root.after(50, self._poll_linux_paste)
 
         root.title(f"手机语音输入 → 电脑 v{core.APP_VERSION}")
         root.configure(bg=BG)
@@ -241,7 +250,7 @@ class App:
         auth_row.pack(pady=(12, 2))
         self.status_label = tk.Label(auth_row, text="", bg=BG, font=(FONT, 12))
         self.status_label.pack(side="left")
-        if not IS_WINDOWS:
+        if IS_MAC:
             make_btn(auth_row, "🍬 设置授权", PINK, PINK_BD,
                      self.open_settings, small=True).pack(side="left", padx=(10, 0))
         self.update_status()
@@ -277,7 +286,7 @@ class App:
         tk.Label(f, text=f"版本 v{core.APP_VERSION}", bg=BG, fg=MUTED,
                  font=(FONT, 9)).pack(pady=(3, 0))
 
-        if not IS_WINDOWS and self._not_in_apps_dir():
+        if IS_MAC and self._not_in_apps_dir():
             tk.Label(f, text="😿 从临时位置运行：请把 App 移到“应用程序”文件夹",
                      bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(5, 0))
 
@@ -392,7 +401,7 @@ class App:
     def update_status(self):
         self._refresh_ips()
         if check_accessibility():
-            text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权，可以直接用啦"
+            text = "🎉 已就绪，手机扫码就能用！" if (IS_WINDOWS or IS_LINUX) else "🌈 已授权，可以直接用啦"
             self.status_label.config(text=text, fg=GREEN)
         else:
             self.status_label.config(text="😿 未授权，点右边开启", fg=RED)
@@ -429,6 +438,21 @@ class App:
 
     def _watch_clipboard(self):
         """监听剪贴板变化，自动同步到手机（可开关）。"""
+        if IS_LINUX:
+            def poll():
+                if self.clip_auto.get():
+                    try:
+                        text = get_clipboard_text(self.root).strip()
+                        if text and text != self._last_clip_text:
+                            self._last_clip_text = text
+                            core.to_phone(text)
+                    except Exception:
+                        pass
+                self.root.after(1200, poll)
+
+            self.root.after(1200, poll)
+            return
+
         if IS_WINDOWS:
             def poll():
                 if self.clip_auto.get():
@@ -459,8 +483,33 @@ class App:
 
         self.root.after(800, poll)
 
+    def _poll_linux_paste(self):
+        """Linux/UOS：在主线程写剪贴板并模拟 Ctrl+V（tk 剪贴板非线程安全）。"""
+        while not core.LINUX_PASTE_QUEUE.empty():
+            text, done, result = core.LINUX_PASTE_QUEUE.get_nowait()
+            try:
+                self.root.clipboard_clear()
+                self.root.clipboard_append(text)
+                self.root.update()  # 提交剪贴板选择
+                from pynput.keyboard import Controller, Key, KeyCode
+
+                kb = Controller()
+                kb.press(Key.ctrl)
+                kb.press(KeyCode.from_char("v"))
+                kb.release(KeyCode.from_char("v"))
+                kb.release(Key.ctrl)
+                result["method"] = "clipboard"
+                result["detail"] = ""
+            except Exception as e:
+                core.log(f"linux paste 异常: {e!r}")
+                result["method"] = "clipboard"
+                result["detail"] = f"模拟粘贴失败：{e}"
+            finally:
+                done.set()
+        self.root.after(50, self._poll_linux_paste)
+
     def sync_clipboard_now(self):
-        text = get_clipboard_text().strip()
+        text = get_clipboard_text(self.root).strip()
         if not text:
             self.status_label.config(text="😿 剪贴板里没有文字哦", fg=RED)
             self.root.after(2000, self.update_status)

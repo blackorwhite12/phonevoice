@@ -119,6 +119,45 @@ jobs:
           name: macos-x64
           path: PhoneVoice-macos-x64.zip
 
+  build-linux-uos:
+    name: UOS/Linux x64（免安装）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 在 Debian 10 容器里打包（兼容 UOS V20 / glibc 2.28）
+        run: docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src python:3.9-buster bash -lc "bash /src/build_linux.sh"
+      - name: 整理便携目录
+        run: |
+          mkdir -p dist/UOS-Portable-PhoneVoice
+          cp -r dist/PhoneVoice-linux/. dist/UOS-Portable-PhoneVoice/
+          cat > dist/UOS-Portable-PhoneVoice/启动.sh <<'EOF'
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+exec ./PhoneVoice-linux
+EOF
+          cat > dist/UOS-Portable-PhoneVoice/使用说明.txt <<'EOF'
+手机语音输入 → UOS（统信）电脑 · v1.4.7
+
+用法：
+  1. 把整个 UOS-Portable-PhoneVoice 文件夹拷到电脑上（比如桌面）。
+  2. 右键 → 在此处打开终端，运行：./启动.sh
+     或双击 PhoneVoice-linux。
+  3. 用手机相机扫窗口里的二维码（手机和电脑连同一个 WiFi）。
+  4. 先在 UOS 里点一下要输入的地方，再在手机上说话，停顿时自动上屏。
+
+提示：
+  - 首次运行若 UOS 安全中心拦截，选择“允许/仍要运行”。
+  - 若手机打不开网页，放行 8765 端口（UOS 安全中心 → 防火墙）。
+EOF
+          chmod +x dist/UOS-Portable-PhoneVoice/PhoneVoice-linux dist/UOS-Portable-PhoneVoice/启动.sh
+          chmod -R a+rX dist/UOS-Portable-PhoneVoice
+      - name: 打包 zip
+        run: cd dist && zip -r -y ../PhoneVoice-UOS-x64-1.4.7.zip UOS-Portable-PhoneVoice
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uos-linux-x64
+          path: PhoneVoice-UOS-x64-1.4.7.zip
+
   release:
     name: 发布 Release
     needs: [build-windows, build-macos-arm64]
