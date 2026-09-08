@@ -272,7 +272,7 @@ class App:
         tk.Label(f, text=tip_txt, bg=BG, fg=MUTED, font=(FONT, 10)
                  ).pack(pady=(8, 0))
         if IS_WINDOWS:
-            make_btn(f, "🛡️ 手机连不上？点我一键放行防火墙", YELLOW, YELLOW_BD,
+            make_btn(f, "🛡️ 手机连不上？点我一键放行防火墙", YELLOW_BG, YELLOW_BD,
                      self.open_firewall, small=True).pack(pady=(6, 0))
         tk.Label(f, text=f"版本 v{core.APP_VERSION}", bg=BG, fg=MUTED,
                  font=(FONT, 9)).pack(pady=(3, 0))
