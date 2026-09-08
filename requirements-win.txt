@@ -2,3 +2,4 @@ qrcode
 pillow
 pyperclip
 keyboard
+psutil

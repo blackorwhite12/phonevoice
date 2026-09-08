@@ -15,6 +15,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -100,38 +101,110 @@ def _is_usable_lan_ip(ip: str) -> bool:
     )
 
 
-def get_all_lan_ips() -> list[str]:
-    """列出本机所有可用 IPv4 局域网地址；主网卡 IP 排最前。"""
-    ips: set[str] = set()
-    primary = None
-    # UDP 路由技巧：不真正发包，只拿到“上网用的那张网卡”的 IP，排最前
+# 常见虚拟网卡关键名：VM/VPN/容器/苹果虚拟接口，这些 IP 手机通常连不上
+_VIRTUAL_NIC_MARKERS = (
+    "virtualbox", "vmware", "hyper-v", "vethernet", "wsl", "docker",
+    "veth", "tap", "tun", "wireguard", "zerotier", "tailscale", "hamachi",
+    "nordlynx", "vpn", "npcap", "teredo", "isatap", "loopback",
+    "bluetooth", "ppp", "utun", "awdl", "bridge100", "anpi", "lo0",
+    "headless", "dpdk",
+)
+
+
+def _primary_lan_ip() -> str:
+    """返回“上网用的那张网卡”的局域网 IP；拿不到就返回空串。"""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        # UDP 路由技巧：不真正发包，只拿到默认路由（外网）那张网卡的 IP
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         if _is_usable_lan_ip(ip):
-            primary = ip
-            ips.add(ip)
+            return ip
     except OSError:
         pass
     finally:
         s.close()
+    return ""
+
+
+def _looks_like_virtual_ip(ip: str) -> bool:
+    """判断是否属于常见虚拟网卡网段（VM/VPN/容器），真网卡不足时才兜底。"""
+    if not ip or ":" in ip:
+        return True
+    if ip.startswith("192.168.56.") or ip.startswith("192.168.99."):
+        return True  # VirtualBox 主机网络 / Docker 默认
     try:
-        for info in socket.getaddrinfo(socket.gethostname(), None):
-            ip = info[4][0]
-            if _is_usable_lan_ip(ip):
-                ips.add(ip)
+        a, b = int(ip.split(".")[0]), int(ip.split(".")[1])
+    except Exception:
+        return True
+    if a == 172 and 16 <= b <= 31:
+        return True  # Docker/WSL/Hyper-V 默认交换机常用段
+    return False
+
+
+def get_all_lan_ips() -> list[str]:
+    """列出本机所有可用 IPv4 局域网地址；主网卡排最前，虚拟网卡排最后。"""
+    primary = _primary_lan_ip()
+    candidates: set[str] = set()
+
+    # 优先用 psutil 按网卡名精确过滤虚拟网卡；没装 psutil 时退回 getaddrinfo。
+    try:
+        import psutil
+
+        for name, addrs in psutil.net_if_addrs().items():
+            lower = name.lower()
+            if any(m in lower for m in _VIRTUAL_NIC_MARKERS):
+                continue
+            for a in addrs:
+                if a.family == socket.AF_INET and _is_usable_lan_ip(a.address):
+                    candidates.add(a.address)
     except Exception:
         pass
-    if primary:
-        return [primary] + sorted(ips - {primary})
-    return sorted(ips)
+
+    if not candidates:
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None):
+                ip = info[4][0]
+                if _is_usable_lan_ip(ip):
+                    candidates.add(ip)
+        except Exception:
+            pass
+
+    ordered: list[str] = [primary] if primary else []
+    rest = sorted(candidates - set(ordered))
+    real = [ip for ip in rest if not _looks_like_virtual_ip(ip)]
+    fake = [ip for ip in rest if _looks_like_virtual_ip(ip)]
+    return ordered + real + fake
 
 
 def get_lan_ip() -> str:
     """返回第一个局域网 IP；没有时退回回环地址。"""
     ips = get_all_lan_ips()
     return ips[0] if ips else "127.0.0.1"
+
+
+def add_firewall_rule_windows() -> bool:
+    """为当前 exe 一键添加 Windows 入站允许规则（会弹 UAC，需点“是”）。"""
+    if not IS_WINDOWS:
+        return False
+    import ctypes
+
+    exe = os.path.abspath(sys.executable)
+    bat = os.path.join(tempfile.gettempdir(), "phonevoice_fw.bat")
+    content = (
+        "@echo off\r\n"
+        "netsh advfirewall firewall delete rule name=PhoneVoice >nul 2>&1\r\n"
+        f'netsh advfirewall firewall add rule name=PhoneVoice dir=in action=allow '
+        f'program="{exe}" enable=yes profile=private\r\n'
+        "echo PhoneVoice firewall rule added.\r\n"
+    )
+    try:
+        with open(bat, "w", encoding="ascii", errors="replace") as f:
+            f.write(content)
+        rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", bat, None, None, 0)
+        return bool(rc) and rc > 32
+    except Exception:
+        return False
 
 
 def type_text(text: str) -> tuple[str, str]:

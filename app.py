@@ -271,6 +271,9 @@ class App:
         )
         tk.Label(f, text=tip_txt, bg=BG, fg=MUTED, font=(FONT, 10)
                  ).pack(pady=(8, 0))
+        if IS_WINDOWS:
+            make_btn(f, "🛡️ 手机连不上？点我一键放行防火墙", YELLOW, YELLOW_BD,
+                     self.open_firewall, small=True).pack(pady=(6, 0))
         tk.Label(f, text=f"版本 v{core.APP_VERSION}", bg=BG, fg=MUTED,
                  font=(FONT, 9)).pack(pady=(3, 0))
 
@@ -359,6 +362,18 @@ class App:
         self.url_label.configure(text=self.url)
         self._fill_addr_buttons()
         self._update_qr()
+
+    def open_firewall(self):
+        """Windows：一键放行防火墙（提权），解决手机扫了码打不开。"""
+        if not IS_WINDOWS:
+            return
+        if core.add_firewall_rule_windows():
+            self.status_label.config(
+                text="🛡️ 防火墙已放行，请用手机重新扫码", fg=GREEN)
+        else:
+            self.status_label.config(
+                text="😿 需要管理员权限：右键本程序 → 以管理员身份运行后再点一次", fg=RED)
+        self.root.after(3000, self.update_status)
 
     @staticmethod
     def _not_in_apps_dir() -> bool:
