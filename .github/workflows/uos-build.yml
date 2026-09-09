@@ -1,0 +1,53 @@
+name: UOS Build
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: python:3.9-slim-buster
+    steps:
+      - uses: actions/checkout@v4
+      - name: install tk + xvfb + build tools
+        run: |
+          set -e
+          printf 'deb http://archive.debian.org/debian buster main\n' > /etc/apt/sources.list
+          apt-get update -o Acquire::Retries=3
+          apt-get install -y --no-install-recommends tk8.6 libtk8.6 tcl8.6 libtcl8.6 xvfb xauth xdg-utils ca-certificates git binutils zip
+      - name: deps
+        run: python -m pip install qrcode pillow psutil pyinstaller
+      - name: build
+        run: bash build_linux.sh
+      - name: package
+        run: |
+          set -e
+          OUT="out/UOS-Portable-PhoneVoice"
+          mkdir -p "$OUT"
+          cp -r dist/PhoneVoice/* "$OUT/"
+          cat > "$OUT/启动.sh" <<'SH'
+          #!/usr/bin/env bash
+          cd "$(dirname "$0")"
+          exec ./PhoneVoice
+          SH
+          chmod +x "$OUT/启动.sh"
+          cat > "$OUT/使用说明.txt" <<'TXT'
+          手机语音输入 → UOS（统信）电脑 · v1.4.8
+
+          用法：
+            1. 把整个 UOS-Portable-PhoneVoice 文件夹拷到电脑上（比如桌面）。
+            2. 右键 → 在此处打开终端，运行：./启动.sh  或双击 PhoneVoice。
+            3. 用手机相机扫窗口里的二维码（手机和电脑连同一个 WiFi）。
+            4. 先在 UOS 里点一下要输入的地方，再在手机上说话，停顿后自动上屏。
+
+          提示：
+            - 首次运行若 UOS 安全中心拦截，选择“允许/仍要运行”。
+            - 若手机打不开网页，放行 8765 端口（UOS 安全中心 → 防火墙）。
+            - 直接说“发送”可解放双手：说完自动上屏并回车（微信里直接发出）。
+          TXT
+          ( cd out && zip -r ../PhoneVoice-UOS-x64.zip UOS-Portable-PhoneVoice )
+          echo "产物：" && ls -la PhoneVoice-UOS-x64.zip
+      - name: verify-under-xvfb
+        run: xvfb-run -a bash -c 'timeout 12 ./out/UOS-Portable-PhoneVoice/PhoneVoice; echo "EXIT=$?"' 2>&1 | tail -20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uos-x64
+          path: PhoneVoice-UOS-x64.zip
