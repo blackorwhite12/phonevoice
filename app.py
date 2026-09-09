@@ -177,6 +177,10 @@ class App:
             value=core.get_settings().get("phone_auto_send", True)
         )
         self.phone_auto.trace_add("write", self._on_phone_auto_change)
+        self.auto_enter = tk.BooleanVar(
+            value=core.get_settings().get("auto_enter", True)
+        )
+        self.auto_enter.trace_add("write", self._on_auto_enter_change)
         self._net_warn = None
         self._build_ui()
         self._last_clip_count = get_clipboard_change_count()
@@ -263,6 +267,14 @@ class App:
             "立即同步到手机",
             self.sync_clipboard_now,
         )
+
+        # 解放双手：粘贴成功后自动回车（微信里自动发送）
+        enter_row = tk.Frame(f, bg=BG)
+        enter_row.pack(fill="x", pady=(2, 0))
+        tk.Checkbutton(enter_row, text="🎁 说完自动回车（微信里自动发送）",
+                       variable=self.auto_enter, bg=BG, fg=FG, font=(FONT, 10),
+                       activebackground=BG, selectcolor=CARD, highlightthickness=0,
+                       bd=0).pack(side="left")
 
         tip_txt = (
             "手机和电脑连同一个 WiFi；打不开就在 Windows 防火墙放行本程序"
@@ -424,6 +436,13 @@ class App:
         """桌面端勾选“手机→电脑 自动同步”时写回服务端设置。"""
         try:
             core.set_setting("phone_auto_send", bool(self.phone_auto.get()))
+        except Exception:
+            pass
+
+    def _on_auto_enter_change(self, *_a):
+        """桌面端勾选“说完自动回车”时写回服务端设置。"""
+        try:
+            core.set_setting("auto_enter", bool(self.auto_enter.get()))
         except Exception:
             pass
 

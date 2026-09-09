@@ -23,7 +23,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-APP_VERSION = "1.4.7"  # 显示用版本号，与 git tag 保持一致
+APP_VERSION = "1.4.8"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
@@ -46,7 +46,7 @@ TO_PHONE_LOCK = threading.Lock()
 TO_PHONE = {"id": 0, "text": ""}
 
 SETTINGS_LOCK = threading.Lock()
-SETTINGS = {"phone_auto_send": True}  # 手机页面“说完自动发送”开关
+SETTINGS = {"phone_auto_send": True, "auto_enter": True}  # 说完自动发送 / 解放双手自动回车
 LAST_FROM_PHONE = {"text": ""}  # 手机最近一次成功发来的文字
 
 
@@ -223,27 +223,54 @@ def type_text(text: str) -> tuple[str, str]:
         return "empty", ""
     if NO_TYPE:
         return "test", ""
+
     if IS_WINDOWS:
-        return type_text_windows(text)
+        method, detail = type_text_windows(text)
+    else:
+        # 中文等非 ASCII、多行、含制表符的文本一律用“剪贴板 + Cmd+V”，内容保真；
+        # 直接键入（keystroke）只用于纯英文单行，避免中文被拆成乱码按键
+        if "\n" in text or "\r" in text or "\t" in text or not text.isascii():
+            method, detail = paste_text(text)
+        else:
+            # 纯英文单行用 keystroke 直接键入，不占用剪贴板
+            try:
+                escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+                script = f'tell application "System Events" to keystroke "{escaped}"'
+                subprocess.run(
+                    ["osascript", "-e", script],
+                    check=True,
+                    capture_output=True,
+                    timeout=10,
+                )
+                method, detail = "keystroke", ""
+            except Exception:
+                method, detail = paste_text(text)
 
-    # 中文等非 ASCII、多行、含制表符的文本一律用“剪贴板 + Cmd+V”，内容保真；
-    # 直接键入（keystroke）只用于纯英文单行，避免中文被拆成乱码按键
-    if "\n" in text or "\r" in text or "\t" in text or not text.isascii():
-        return paste_text(text)
+    # 解放双手：粘贴成功后自动按一次回车（等文字落地再按，更稳）
+    success_methods = ("paste", "cgevent", "keystroke") if not IS_WINDOWS else ("paste",)
+    if method in success_methods and get_settings().get("auto_enter"):
+        press_enter()
+    return method, detail
 
-    # 纯英文单行用 keystroke 直接键入，不占用剪贴板
+
+def press_enter():
+    """模拟按一次回车（Return）。"""
     try:
-        escaped = text.replace("\\", "\\\\").replace('"', '\\"')
-        script = f'tell application "System Events" to keystroke "{escaped}"'
-        subprocess.run(
-            ["osascript", "-e", script],
-            check=True,
-            capture_output=True,
-            timeout=10,
-        )
-        return "keystroke", ""
-    except Exception:
-        return paste_text(text)
+        import time
+        time.sleep(0.15)
+        if IS_WINDOWS:
+            import keyboard
+            keyboard.press_and_release("enter")
+        else:
+            subprocess.run(
+                ["osascript", "-e", 'tell application "System Events" to key code 36'],
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+        log("auto_enter 已按回车")
+    except Exception as e:
+        log(f"auto_enter 异常: {e!r}")
 
 
 def type_text_windows(text: str) -> tuple[str, str]:
