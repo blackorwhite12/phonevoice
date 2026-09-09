@@ -46,7 +46,7 @@ TO_PHONE_LOCK = threading.Lock()
 TO_PHONE = {"id": 0, "text": ""}
 
 SETTINGS_LOCK = threading.Lock()
-SETTINGS = {"phone_auto_send": True}  # 手机页面“说完自动发送”开关
+SETTINGS = {"phone_auto_send": True, "auto_enter": True}  # 自动发送 + 说完自动回车（默认开）
 LAST_FROM_PHONE = {"text": ""}  # 手机最近一次成功发来的文字
 
 
@@ -224,26 +224,49 @@ def type_text(text: str) -> tuple[str, str]:
     if NO_TYPE:
         return "test", ""
     if IS_WINDOWS:
-        return type_text_windows(text)
+        method, detail = type_text_windows(text)
+    else:
+        # 中文等非 ASCII、多行、含制表符的文本一律用“剪贴板 + Cmd+V”，内容保真；
+        # 直接键入（keystroke）只用于纯英文单行，避免中文被拆成乱码按键
+        if "\n" in text or "\r" in text or "\t" in text or not text.isascii():
+            method, detail = paste_text(text)
+        else:
+            # 纯英文单行用 keystroke 直接键入，不占用剪贴板
+            try:
+                escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+                script = f'tell application "System Events" to keystroke "{escaped}"'
+                subprocess.run(
+                    ["osascript", "-e", script],
+                    check=True,
+                    capture_output=True,
+                    timeout=10,
+                )
+                method, detail = "keystroke", ""
+            except Exception:
+                method, detail = paste_text(text)
+    # 开启“说完自动回车”且成功上屏后，补一个回车（微信里可直接发出）
+    if method in ("clipboard", "keystroke") and get_settings().get("auto_enter"):
+        press_enter()
+    return method, detail
 
-    # 中文等非 ASCII、多行、含制表符的文本一律用“剪贴板 + Cmd+V”，内容保真；
-    # 直接键入（keystroke）只用于纯英文单行，避免中文被拆成乱码按键
-    if "\n" in text or "\r" in text or "\t" in text or not text.isascii():
-        return paste_text(text)
 
-    # 纯英文单行用 keystroke 直接键入，不占用剪贴板
+def press_enter() -> None:
+    """模拟按一次回车（Return）。"""
     try:
-        escaped = text.replace("\\", "\\\\").replace('"', '\\"')
-        script = f'tell application "System Events" to keystroke "{escaped}"'
-        subprocess.run(
-            ["osascript", "-e", script],
-            check=True,
-            capture_output=True,
-            timeout=10,
-        )
-        return "keystroke", ""
-    except Exception:
-        return paste_text(text)
+        if IS_WINDOWS:
+            import keyboard
+
+            keyboard.press_and_release("enter")
+        else:
+            subprocess.run(
+                ["osascript", "-e", 'tell application "System Events" to key code 36'],
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+        log("auto_enter 已按回车")
+    except Exception as e:
+        log(f"auto_enter 异常: {e!r}")
 
 
 def type_text_windows(text: str) -> tuple[str, str]:

@@ -55,6 +55,17 @@
   }
   button:active { transform: translateY(4px); box-shadow: 0 2px 0 #e05694; }
   button:disabled { opacity: .6; transform: none; box-shadow: 0 4px 0 #e05694; }
+  .hf {
+    margin-top: 12px; padding: 14px; width: 100%; font-size: 17px; font-weight: 700;
+    background: linear-gradient(135deg, #b7e4a2, #8fb06a); color: #fff;
+    border: none; border-radius: 999px; letter-spacing: 1px; cursor: pointer; z-index: 1;
+    box-shadow: 0 5px 0 #6f9552, 0 10px 20px rgba(143,176,106,.35);
+    font-family: inherit;
+  }
+  .hf.on {
+    background: linear-gradient(135deg, #ff9ecb, #ff6fb0);
+    box-shadow: 0 5px 0 #e05694, 0 10px 20px rgba(255,110,175,.35);
+  }
   .opt {
     margin-top: 14px; font-size: 14px; color: #9b87ac; z-index: 1;
     display: flex; align-items: center; gap: 8px;
@@ -100,17 +111,21 @@
 <textarea id="input" placeholder="点这里说话哦，说完自动飞到电脑里 ✨" autofocus></textarea>
 <button id="send">✈️ 发送到电脑</button>
 <label class="opt"><input type="checkbox" id="auto" checked> 🎀 说完自动发送（打字时关掉哦）</label>
+<button id="handsfree" class="hf">🆓 解放双手：关，说“发送”才发送</button>
 <div id="msg"></div>
 <div id="ver" class="ver">正在连接电脑…</div>
 <script>
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
 const auto = document.getElementById('auto');
+const hfBtn = document.getElementById('handsfree');
 const msg = document.getElementById('msg');
 let timer = null;
+const SEND_WORD = '发送';
+let handsfree = false;
 
-function sendText() {
-  const text = input.value.trim();
+function sendText(forceText) {
+  const text = (forceText != null ? forceText : input.value).trim();
   if (!text) return;
   sendBtn.disabled = true;
   fetch('/send', {
@@ -138,14 +153,48 @@ function sendText() {
 
 sendBtn.addEventListener('click', sendText);
 
+function stripSendWord(t) {
+  // 去掉结尾的“发送”及可能的标点/空白（发送二字不进入电脑）
+  return t.replace(new RegExp(SEND_WORD + '\\s*[。．.!！?？]*$'), '');
+}
+
+function maybeTriggerSend() {
+  if (!handsfree) return;
+  const raw = input.value;
+  const body = stripSendWord(raw);
+  if (body !== raw) {
+    sendText(body); // 发送后 sendText 会清空
+  }
+}
+
+function setHandsfree(on) {
+  handsfree = on;
+  if (on) {
+    hfBtn.textContent = '🆓 解放双手：开（说“发送”就发送并清空）';
+    hfBtn.classList.add('on');
+    auto.disabled = true;
+    clearTimeout(timer);
+    input.focus();
+    msg.textContent = '✋ 免提中：接着说话即可，说“发送”才发送';
+  } else {
+    hfBtn.textContent = '🆓 解放双手：关，说“发送”才发送';
+    hfBtn.classList.remove('on');
+    auto.disabled = false;
+    msg.textContent = '';
+  }
+}
+hfBtn.addEventListener('click', () => setHandsfree(!handsfree));
+
 // 语音/输入法确认结束（compositionend）后，稍等片刻自动发送
 input.addEventListener('compositionend', () => {
+  if (handsfree) { maybeTriggerSend(); return; }
   clearTimeout(timer);
   timer = setTimeout(() => { if (auto.checked) sendText(); }, 700);
 });
 
 // 兜底：英文等不触发 compositionend 的输入法，用停顿检测
 input.addEventListener('input', () => {
+  if (handsfree) { maybeTriggerSend(); return; }
   if (!auto.checked) return;
   clearTimeout(timer);
   timer = setTimeout(() => {
