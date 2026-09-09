@@ -24,7 +24,7 @@ jobs:
               ['app.py'],
               pathex=[], binaries=[],
               datas=[('index.html','.'),('qr.html','.'),('manifest.json','.'),('icon-192.png','.'),('icon-512.png','.'),('apple-touch-icon.png','.')],
-              hiddenimports=[], hookspath=[], hooksconfig={}, runtime_hooks=[],
+              hiddenimports=['PIL._tkinter_finder'], hookspath=[], hooksconfig={}, runtime_hooks=[],
               excludes=['tkinterdnd2','tkinterdnd2.TkinterDnD'], noarchive=False, optimize=0,
           )
           _XP = ('libX11','libxcb','libXft','libXext','libXrender','libXss','libXau','libXdmcp')
