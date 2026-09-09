@@ -4,21 +4,42 @@ on:
 jobs:
   repro:
     runs-on: ubuntu-latest
-    container: debian:10-slim
+    container: python:3.9-slim-buster
     steps:
       - uses: actions/checkout@v4
-      - name: install python3.9 + tk + xvfb
+      - name: install tk + xvfb
         run: |
           set -e
-          printf 'deb http://deb.debian.org/debian buster main\n' > /etc/apt/sources.list
-          printf 'deb http://deb.debian.org/debian buster-backports main\n' >> /etc/apt/sources.list
+          printf 'deb http://archive.debian.org/debian buster main\n' > /etc/apt/sources.list
           apt-get update -o Acquire::Retries=3
-          apt-get install -y --no-install-recommends python3.9 python3.9-dev python3.9-tk tk8.6 tcl8.6 xvfb xauth xdg-utils ca-certificates git wget
-          python3.9 -m ensurepip 2>/dev/null || python3.9 -m pip install --upgrade pip
-          python3.9 -c "import tkinter; print('tkinter OK on', __import__('sys').version)"
+          apt-get install -y --no-install-recommends tk8.6 libtk8.6 tcl8.6 libtcl8.6 xvfb xauth xdg-utils ca-certificates git
+          python -c "import tkinter; print('tkinter OK on', __import__('sys').version)"
       - name: deps
-        run: python3.9 -m pip install qrcode pillow psutil pyinstaller
-      - name: build-default
-        run: pyinstaller --noconfirm --onedir --name PhoneVoice --add-data "index.html:." --add-data "qr.html:." --add-data "manifest.json:." --add-data "icon-192.png:." --add-data "icon-512.png:." --add-data "apple-touch-icon.png:." app.py
+        run: python -m pip install qrcode pillow psutil pyinstaller
+      - name: build-fixed
+        run: |
+          cat > pv-linux.spec <<'SPEC'
+          # -*- mode: python ; coding: utf-8 -*-
+          a = Analysis(
+              ['app.py'],
+              pathex=[], binaries=[],
+              datas=[('index.html','.'),('qr.html','.'),('manifest.json','.'),('icon-192.png','.'),('icon-512.png','.'),('apple-touch-icon.png','.')],
+              hiddenimports=[], hookspath=[], hooksconfig={}, runtime_hooks=[],
+              excludes=['tkinterdnd2','tkinterdnd2.TkinterDnD'], noarchive=False, optimize=0,
+          )
+          _XP = ('libX11','libxcb','libXft','libXext','libXrender','libXss','libXau','libXdmcp')
+          a.binaries = [b for b in a.binaries if not b[0].startswith(_XP)]
+          pyz = PYZ(a.pure)
+          exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='PhoneVoice',
+                    debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
+                    console=False, disable_windowed_traceback=False, argv_emulation=False,
+                    target_arch=None, codesign_identity=None, entitlements_file=None)
+          coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='PhoneVoice')
+          SPEC
+          pyinstaller --noconfirm --clean pv-linux.spec
+      - name: check-imports
+        run: |
+          echo "=== 打包内是否还残留 X11 库（应无）==="
+          ls dist/PhoneVoice/_internal/ | grep -iE '^lib(X11|xcb|Xft|Xext|Xrender|Xss|Xau|Xdmcp)' || echo "✅ 已剔除"
       - name: run-under-xvfb
-        run: xvfb-run -a bash -c 'timeout 12 ./dist/PhoneVoice/PhoneVoice; echo "EXIT=$?"' 2>&1 | tail -60
+        run: xvfb-run -a bash -c 'timeout 15 ./dist/PhoneVoice/PhoneVoice; echo "EXIT=$?"' 2>&1 | tail -60
