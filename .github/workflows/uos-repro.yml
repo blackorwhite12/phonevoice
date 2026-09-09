@@ -1,0 +1,24 @@
+name: uos-repro
+on:
+  workflow_dispatch:
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    container: debian:10-slim
+    steps:
+      - uses: actions/checkout@v4
+      - name: install python3.9 + tk + xvfb
+        run: |
+          set -e
+          printf 'deb http://deb.debian.org/debian buster main\n' > /etc/apt/sources.list
+          printf 'deb http://deb.debian.org/debian buster-backports main\n' >> /etc/apt/sources.list
+          apt-get update -o Acquire::Retries=3
+          apt-get install -y --no-install-recommends python3.9 python3.9-dev python3.9-tk tk8.6 tcl8.6 xvfb xauth xdg-utils ca-certificates git wget
+          python3.9 -m ensurepip 2>/dev/null || python3.9 -m pip install --upgrade pip
+          python3.9 -c "import tkinter; print('tkinter OK on', __import__('sys').version)"
+      - name: deps
+        run: python3.9 -m pip install qrcode pillow psutil pyinstaller
+      - name: build-default
+        run: pyinstaller --noconfirm --onedir --name PhoneVoice --add-data "index.html:." --add-data "qr.html:." --add-data "manifest.json:." --add-data "icon-192.png:." --add-data "icon-512.png:." --add-data "apple-touch-icon.png:." app.py
+      - name: run-under-xvfb
+        run: xvfb-run -a bash -c 'timeout 12 ./dist/PhoneVoice/PhoneVoice; echo "EXIT=$?"' 2>&1 | tail -60
