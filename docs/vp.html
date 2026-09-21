@@ -30,15 +30,19 @@
 </head>
 <body>
   <h1>🎤 声连 · Vision Pro</h1>
-  <div class="sub">用豆包输入法说话 → 说「发送」→ 手机上点一下「打开」→ 去 Vision Pro 粘贴</div>
-  <textarea id="input" placeholder="点这里，用豆包输入法说话；说完说「发送」就发出去 ✨" autofocus></textarea>
-  <button id="send">✈️ 发送（也可以直接说「发送」）</button>
+  <div class="sub">用豆包输入法说话 → 点一下「发送」（直接复制）→ 去 Vision Pro 长捏粘贴。键盘不会掉，可以接着说。</div>
+  <textarea id="input" placeholder="点这里，用豆包输入法说话 ✨" autofocus></textarea>
+  <button id="send">✈️ 发送（复制到剪贴板）</button>
   <div id="msg"></div>
   <div class="hint">
-    <b>「声连」快捷指令要配 2 个动作：</b><br>
-    ① <b>拷贝到剪贴板</b>，内容选「快捷指令输入」；<br>
-    ② <b>打开 App</b> → 选 <b>Safari</b>（发送后自动回到本页，继续输入的关键）；<br>
-    ③ 两台设备同一 Apple ID、都开「接力」、蓝牙与 Wi‑Fi 打开。
+    <b>怎么用：</b><br>
+    ① 点一下输入框（键盘出来）→ 用豆包语音说话；<br>
+    ② 点「<b>发送</b>」→ 文字进剪贴板（<b>页面不跳走、键盘不掉</b>）；<br>
+    ③ 到 Vision Pro 输入框：<b>长捏 → 粘贴</b>；<br>
+    ④ 回到本页接着说话即可。<br>
+    <br>
+    <b>前提：</b>两台设备同一 Apple ID、都开「接力」，蓝牙与 Wi‑Fi 打开（通用剪贴板）。<br>
+    <b>不行时</b>：会自动退回"快捷指令"方式（需要手机里有名为「声连」的快捷指令）。
   </div>
 <script>
   var SHORTCUT = "声连";
@@ -49,12 +53,37 @@
   function stripSendWord(t){
     return t.replace(new RegExp(SEND_WORD + "\\s*[。．.!！?？]*$"), "");
   }
+
+  function trimAll(s){ return s.replace(/^\s+|\s+$/g, ""); }
+
+  // 把输入框里的文字复制到剪贴板 —— 不离开本页，所以键盘不会掉
+  function copyNow(){
+    var ok = false;
+    try {
+      input.focus();
+      input.setSelectionRange(0, input.value.length);
+      ok = document.execCommand('copy');
+    } catch (e) { ok = false; }
+    if (!ok) {
+      try { navigator.clipboard.writeText(input.value); ok = true; } catch (e) { ok = false; }
+    }
+    return ok;
+  }
+
+  // 说「发送」或点「发送」按钮：先"复制"（不跳走）；万一复制不了，才退回快捷指令
   function send(text){
-    text = (text != null ? text : input.value).trim();
-    if (!text) return;
-    input.value = "";  // 立即清空，避免同一句被重复触发
+    var t = trimAll(text != null ? text : input.value);
+    if (!t) return;
+    input.value = t;
+    if (copyNow()) {
+      input.value = "";
+      msg.textContent = "🎉 已复制到剪贴板，去 Vision Pro 长捏粘贴（键盘没掉，接着说下一句就行）";
+      input.focus();
+      return;
+    }
+    input.value = "";
     var url = "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT)
-            + "&input=text&text=" + encodeURIComponent(text);
+            + "&input=text&text=" + encodeURIComponent(t);
     msg.textContent = "👉 点一下「打开」，就复制到剪贴板了；然后去 Vision Pro 粘贴";
     window.location.href = url;
   }
