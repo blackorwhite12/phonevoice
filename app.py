@@ -455,7 +455,9 @@ class App:
                         text = get_clipboard_text().strip()
                         if text and text != self._last_clip_text:
                             self._last_clip_text = text
-                            core.to_phone(text)
+                            # 手机刚发来的文字（电脑用剪贴板粘贴造成），不要再同步回手机，避免回环抢焦点
+                            if text != core.LAST_FROM_PHONE.get("text"):
+                                core.to_phone(text)
                     except Exception:
                         pass
                 self.root.after(1500, poll)
@@ -470,7 +472,7 @@ class App:
                     if count != self._last_clip_count:
                         self._last_clip_count = count
                         text = get_clipboard_text().strip()
-                        if text:
+                        if text and text != core.LAST_FROM_PHONE.get("text"):
                             core.to_phone(text)
                 except Exception:
                     pass

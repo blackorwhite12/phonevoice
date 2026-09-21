@@ -127,6 +127,10 @@ let handsfree = false;
 function sendText(forceText) {
   const text = (forceText != null ? forceText : input.value).trim();
   if (!text) return;
+  // 立即清空输入框并取消待发定时器，避免同一句话被多个事件
+  // （input / compositionend 会先后触发）重复发送，导致“说一遍发多遍”。
+  clearTimeout(timer);
+  input.value = '';
   sendBtn.disabled = true;
   fetch('/send', {
     method: 'POST',
@@ -139,12 +143,13 @@ function sendText(forceText) {
       } else {
         msg.textContent = '🎉 已经飞到电脑上啦！';
       }
-      input.value = '';
     } else {
       msg.textContent = '😵 发送失败：' + (d.error || '未知错误');
+      input.value = text; // 失败还原，别丢字
     }
   }).catch(() => {
     msg.textContent = '😵 发送失败，电脑端的小程序是不是关掉啦？';
+    input.value = text; // 失败还原，别丢字
   }).finally(() => {
     sendBtn.disabled = false;
     input.focus();
@@ -223,9 +228,12 @@ async function pollRx() {
       received.value = d.text;
       rxCard.hidden = false;
       rxMsg.textContent = '';
-      received.focus();
-      received.select();
-      received.setSelectionRange(0, received.value.length);
+      // 用户正在输入/说话时不要抢走焦点，避免发送后跳走
+      if (document.activeElement !== input) {
+        received.focus();
+        received.select();
+        received.setSelectionRange(0, received.value.length);
+      }
     } else if (d.id > lastRxId) {
       // 服务端已前进但没有待显示文本（例如已被确认过），跳过旧 id
       lastRxId = d.id;
