@@ -84,6 +84,15 @@
   window.addEventListener('load', refocus);
   window.addEventListener('focus', refocus);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) refocus(); });
+
+  // iOS 必须靠"点击"才会给键盘；那就让你点页面任意空白处都能把光标放进输入框
+  document.addEventListener('touchend', function(e){
+    var t = e.target;
+    if (t === input) return;
+    if (t && t.closest && t.closest('button')) return;
+    focusInput();
+  }, {passive:true});
+
   refocus();
 </script>
 </body>
