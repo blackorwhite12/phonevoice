@@ -68,28 +68,27 @@
   document.getElementById('send').addEventListener('click', function(){ send(); });
 
   function focusInput(){
-    try {
-      input.focus();
-      var n = input.value.length;
-      try { input.setSelectionRange(n, n); } catch (e) {}
-    } catch (e) {}
+    try { input.focus(); } catch (e) {}
   }
-  // 回到页面后，持续 ~6 秒不断把焦点抢回输入框，尽量让键盘不缩回去
-  var keepTimer = null;
-  function keepKeyboard(){
+
+  // 回到页面后的几秒内：谁让输入框失焦，就立刻抢回来 —— 专门顶住最后那一下"收"
+  var guardUntil = 0;
+  function armGuard(){
+    guardUntil = Date.now() + 6000;
     focusInput();
-    if (keepTimer) { clearInterval(keepTimer); }
-    var n = 0;
-    keepTimer = setInterval(function(){
-      n++;
-      focusInput();
-      if (n >= 8) { clearInterval(keepTimer); keepTimer = null; }
-    }, 700);
+    setTimeout(focusInput, 200);
+    setTimeout(focusInput, 700);
   }
-  window.addEventListener('pageshow', keepKeyboard);
-  window.addEventListener('load', keepKeyboard);
-  window.addEventListener('focus', keepKeyboard);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) keepKeyboard(); });
+  input.addEventListener('blur', function(){
+    if (Date.now() < guardUntil) {
+      setTimeout(focusInput, 0);
+      setTimeout(focusInput, 150);
+    }
+  });
+  window.addEventListener('pageshow', armGuard);
+  window.addEventListener('load', armGuard);
+  window.addEventListener('focus', armGuard);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) armGuard(); });
 
   // iOS 必须靠"点击"才会给键盘；那就让你点页面任意空白处都能把光标放进输入框
   document.addEventListener('touchend', function(e){
@@ -99,7 +98,7 @@
     focusInput();
   }, {passive:true});
 
-  keepKeyboard();
+  armGuard();
 </script>
 </body>
 </html>
