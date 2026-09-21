@@ -74,16 +74,22 @@
       try { input.setSelectionRange(n, n); } catch (e) {}
     } catch (e) {}
   }
-  function refocus(){
+  // 回到页面后，持续 ~6 秒不断把焦点抢回输入框，尽量让键盘不缩回去
+  var keepTimer = null;
+  function keepKeyboard(){
     focusInput();
-    setTimeout(focusInput, 250);
-    setTimeout(focusInput, 900);
-    setTimeout(focusInput, 2000);
+    if (keepTimer) { clearInterval(keepTimer); }
+    var n = 0;
+    keepTimer = setInterval(function(){
+      n++;
+      focusInput();
+      if (n >= 8) { clearInterval(keepTimer); keepTimer = null; }
+    }, 700);
   }
-  window.addEventListener('pageshow', refocus);
-  window.addEventListener('load', refocus);
-  window.addEventListener('focus', refocus);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refocus(); });
+  window.addEventListener('pageshow', keepKeyboard);
+  window.addEventListener('load', keepKeyboard);
+  window.addEventListener('focus', keepKeyboard);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) keepKeyboard(); });
 
   // iOS 必须靠"点击"才会给键盘；那就让你点页面任意空白处都能把光标放进输入框
   document.addEventListener('touchend', function(e){
@@ -93,7 +99,7 @@
     focusInput();
   }, {passive:true});
 
-  refocus();
+  keepKeyboard();
 </script>
 </body>
 </html>
