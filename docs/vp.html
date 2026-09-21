@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffe9f1">
+<title>声连 · Vision Pro</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:18px 16px 24px;min-height:100vh;display:flex;flex-direction:column;
+       font-family:-apple-system,"PingFang SC","Wawati SC",sans-serif;color:#5b4a6b;
+       background:linear-gradient(165deg,#ffe9f1 0%,#e8f4ff 55%,#f3e8ff 100%)}
+  h1{font-size:22px;color:#ff7bac;margin:6px 0;text-shadow:0 2px 0 rgba(255,255,255,.7)}
+  .sub{font-size:14px;color:#8b7ba0;margin-bottom:12px;line-height:1.6}
+  textarea{flex:1;min-height:200px;font-size:18px;line-height:1.6;background:rgba(255,255,255,.95);
+           color:#5b4a6b;border:3px solid #ffb6d5;border-radius:22px;padding:16px;resize:none;outline:none;
+           box-shadow:0 8px 24px rgba(255,150,190,.25)}
+  textarea:focus{border-color:#ff8fc0}
+  textarea::placeholder{color:#cdb9dc}
+  button{margin-top:14px;padding:16px;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;border:0;
+         border-radius:999px;background:linear-gradient(135deg,#ff9ecb,#ff6fb0);
+         box-shadow:0 6px 0 #e05694,0 12px 24px rgba(255,110,175,.35)}
+  button:active{transform:translateY(3px);box-shadow:0 2px 0 #e05694}
+  #msg{margin-top:10px;font-size:15px;color:#ff7bac;min-height:22px}
+  .hint{font-size:13px;color:#9b87ac;margin-top:14px;line-height:1.7}
+  .hint b{color:#7a6a8c}
+</style>
+</head>
+<body>
+  <h1>🎤 声连 · Vision Pro</h1>
+  <div class="sub">用豆包输入法说话 → 说「发送」→ 手机上点一下「打开」→ 去 Vision Pro 粘贴</div>
+  <textarea id="input" placeholder="点这里，用豆包输入法说话；说完说「发送」就发出去 ✨" autofocus></textarea>
+  <button id="send">✈️ 发送（也可以直接说「发送」）</button>
+  <div id="msg"></div>
+  <div class="hint">
+    用不了？检查两点：<br>
+    ① iPhone「快捷指令」里有个叫 <b>声连</b> 的快捷指令，里面只有一个动作：<b>拷贝到剪贴板</b>，内容选「快捷指令输入」；<br>
+    ② 两台设备同一 Apple ID、都开「接力」、蓝牙与 Wi‑Fi 打开。
+  </div>
+<script>
+  var SHORTCUT = "声连";
+  var SEND_WORD = "发送";
+  var input = document.getElementById('input');
+  var msg = document.getElementById('msg');
+
+  function stripSendWord(t){
+    return t.replace(new RegExp(SEND_WORD + "\\s*[。．.!！?？]*$"), "");
+  }
+  function send(text){
+    text = (text != null ? text : input.value).trim();
+    if (!text) return;
+    input.value = "";  // 立即清空，避免同一句被重复触发
+    var url = "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT)
+            + "&input=text&text=" + encodeURIComponent(text);
+    msg.textContent = "👉 点一下「打开」，就复制到剪贴板了；然后去 Vision Pro 粘贴";
+    window.location.href = url;
+  }
+  function check(){
+    var raw = input.value;
+    var body = stripSendWord(raw);
+    if (body !== raw && body.trim()) send(body);
+  }
+  input.addEventListener('compositionend', check);
+  input.addEventListener('input', check);
+  document.getElementById('send').addEventListener('click', function(){ send(); });
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) input.focus(); });
+  window.addEventListener('focus', function(){ input.focus(); });
+  input.focus();
+</script>
+</body>
+</html>
