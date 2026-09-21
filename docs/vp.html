@@ -66,9 +66,25 @@
   input.addEventListener('compositionend', check);
   input.addEventListener('input', check);
   document.getElementById('send').addEventListener('click', function(){ send(); });
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) input.focus(); });
-  window.addEventListener('focus', function(){ input.focus(); });
-  input.focus();
+
+  function focusInput(){
+    try {
+      input.focus();
+      var n = input.value.length;
+      try { input.setSelectionRange(n, n); } catch (e) {}
+    } catch (e) {}
+  }
+  function refocus(){
+    focusInput();
+    setTimeout(focusInput, 250);
+    setTimeout(focusInput, 900);
+    setTimeout(focusInput, 2000);
+  }
+  window.addEventListener('pageshow', refocus);
+  window.addEventListener('load', refocus);
+  window.addEventListener('focus', refocus);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refocus(); });
+  refocus();
 </script>
 </body>
 </html>
