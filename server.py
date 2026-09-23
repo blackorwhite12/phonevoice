@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -48,6 +49,7 @@ TO_PHONE = {"id": 0, "text": ""}
 SETTINGS_LOCK = threading.Lock()
 SETTINGS = {"phone_auto_send": True, "auto_enter": True}  # 说完自动发送 / 解放双手自动回车
 LAST_FROM_PHONE = {"text": ""}  # 手机最近一次成功发来的文字
+LAST_SEND = {"text": "", "time": 0.0}  # 防重复：同一句话短时间内只处理一次
 
 
 def to_phone(text: str) -> int:
@@ -483,6 +485,13 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             self._json({"ok": False, "error": "bad request"}, 400)
             return
+        # 防重复：手机输入法偶发把同一句发两遍，2 秒内相同内容只处理一次
+        now = time.time()
+        if text and text == LAST_SEND["text"] and (now - LAST_SEND["time"]) < 2.0:
+            self._json({"ok": True, "method": "duplicate", "detail": ""})
+            return
+        LAST_SEND["text"] = text
+        LAST_SEND["time"] = now
         try:
             method, detail = type_text(text)
             LAST_FROM_PHONE["text"] = text

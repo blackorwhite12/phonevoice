@@ -124,9 +124,16 @@ let timer = null;
 const SEND_WORD = '发送';
 let handsfree = false;
 
+let lastSentText = '';
+let lastSentAt = 0;
 function sendText(forceText) {
   const text = (forceText != null ? forceText : input.value).trim();
   if (!text) return;
+  // 防重复：输入法偶发补发事件，同一句话 3 秒内只发一次
+  const now = Date.now();
+  if (text === lastSentText && (now - lastSentAt) < 3000) { input.value = ''; return; }
+  lastSentText = text;
+  lastSentAt = now;
   // 立即清空输入框并取消待发定时器，避免同一句话被多个事件
   // （input / compositionend 会先后触发）重复发送，导致“说一遍发多遍”。
   clearTimeout(timer);
