@@ -71,9 +71,15 @@
   }
 
   // 说「发送」或点「发送」按钮：先"复制"（不跳走）；万一复制不了，才退回快捷指令
+  var lastSent = { text: '', at: 0 };
   function send(text){
     var t = trimAll(text != null ? text : input.value);
     if (!t) return;
+    // 防重复：输入法偶发补发事件，同一句 3 秒内只处理一次
+    var now = Date.now();
+    if (t === lastSent.text && (now - lastSent.at) < 3000) { input.value = ''; return; }
+    lastSent.text = t;
+    lastSent.at = now;
     input.value = t;
     if (copyNow()) {
       input.value = "";
