@@ -24,7 +24,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-APP_VERSION = "1.4.8"  # 显示用版本号，与 git tag 保持一致
+APP_VERSION = "1.4.9"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
@@ -488,6 +488,7 @@ class Handler(BaseHTTPRequestHandler):
         # 防重复：手机输入法偶发把同一句发两遍，2 秒内相同内容只处理一次
         now = time.time()
         if text and text == LAST_SEND["text"] and (now - LAST_SEND["time"]) < 2.0:
+            log(f"ignored duplicate: {text[:24]!r}")
             self._json({"ok": True, "method": "duplicate", "detail": ""})
             return
         LAST_SEND["text"] = text
