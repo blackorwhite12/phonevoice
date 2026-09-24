@@ -6,18 +6,66 @@
 打包：./build.command（Mac） / build.bat（Windows）
 """
 
-import subprocess
+import os
 import sys
+import pathlib
+
+
+# ---------- Linux 启动诊断（只在 Linux 生效）----------
+# 每走一步写一行到程序旁的「运行日志.txt」；崩溃时能看出卡在哪一步。
+_DIAG = {}
+
+
+def _diag_init():
+    if not sys.platform.startswith("linux"):
+        return
+    try:
+        base = pathlib.Path(os.path.dirname(os.path.abspath(sys.argv[0])))
+        _DIAG["path"] = base / "运行日志.txt"
+        _DIAG["path"].write_text("声连 · Linux 启动诊断\n", encoding="utf-8")
+    except Exception:
+        _DIAG["path"] = None
+
+
+def _diag(msg):
+    try:
+        print("[声连]", msg, flush=True)
+    except Exception:
+        pass
+    p = _DIAG.get("path")
+    if not p:
+        return
+    try:
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+    except Exception:
+        pass
+
+
+_diag_init()
+_diag("1/10 程序启动")
+
+import subprocess
 import tkinter as tk
 from pathlib import Path
+_diag("2/10 基础模块导入完成")
 
 from PIL import Image, ImageTk
+_diag("3/10 Pillow 导入完成")
+
 import qrcode
+_diag("4/10 qrcode 导入完成")
 
 import server as core
+_diag("5/10 server 导入完成")
+
 import make_sync_service
+_diag("6/10 同步服务模块导入完成")
 
 IS_WINDOWS = sys.platform.startswith("win")
+_diag("7/10 平台判断完成")
 
 # ---------- Demo 同款色板 ----------
 BG = "#ffe9f1"          # 奶油粉背景
@@ -206,7 +254,9 @@ class App:
         self.qr_label = tk.Label(qr_inner, bg=CARD)
         self.qr_label.pack(padx=16, pady=12)
         qr_card.place_inner(qr_inner)
+        _diag("9a 开始生成二维码…")
         self._update_qr()
+        _diag("9b 二维码完成")
 
         # 提示：用手机相机扫二维码（“相机”加大加粗），下面跟豆包建议
         tip_row = tk.Frame(f, bg=BG)
@@ -528,8 +578,11 @@ class App:
 
 
 def main() -> None:
+    _diag("8/10 准备创建 Tk 窗口…")
     root = tk.Tk()
+    _diag("9/10 Tk 窗口创建成功，开始建界面…")
     App(root)
+    _diag("10/10 界面完成，进入主循环（如果这里之后崩，问题在运行时）")
     root.mainloop()
 
 

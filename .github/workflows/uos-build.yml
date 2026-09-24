@@ -26,28 +26,45 @@ jobs:
           cat > "$OUT/启动.sh" <<'SH'
           #!/usr/bin/env bash
           cd "$(dirname "$0")"
-          exec ./PhoneVoice
+          ./PhoneVoice > "终端输出.txt" 2>&1
+          code=$?
+          {
+            echo ""
+            echo "===== 程序退出码: $code ====="
+            [ "$code" != "0" ] && echo "（非 0 表示异常退出）"
+          } >> "运行日志.txt"
+          if [ "$code" != "0" ]; then
+            ( xdg-open "运行日志.txt" >/dev/null 2>&1 || xdg-open "终端输出.txt" >/dev/null 2>&1 || true ) &
+            echo "程序异常退出（退出码 $code）。"
+            echo "已尝试打开『运行日志.txt』，请把它截图发给开发者。"
+            read -n 1 -s -r -p "按任意键关闭…"
+          fi
           SH
           chmod +x "$OUT/启动.sh"
           cat > "$OUT/使用说明.txt" <<'TXT'
-          手机语音输入 → UOS（统信）电脑 · v1.4.8
+          手机语音输入 → UOS（统信）电脑 · v1.4.9
 
           用法：
             1. 把整个 UOS-Portable-PhoneVoice 文件夹拷到电脑上（比如桌面）。
-            2. 右键 → 在此处打开终端，运行：./启动.sh  或双击 PhoneVoice。
-            3. 用手机相机扫窗口里的二维码（手机和电脑连同一个 WiFi）。
-            4. 先在 UOS 里点一下要输入的地方，再在手机上说话，停顿后自动上屏。
+            2. 双击「启动.sh」（或右键 → 在此处打开终端 → 运行 ./启动.sh）。
+            3. 手机和电脑连同一个 WiFi；用手机相机扫窗口里的二维码。
+            4. 先在 UOS 里点一下要输入的地方，再在手机上说话。
+
+          如果打不开（启动一下就退出）：
+            - 会自动弹出一个「运行日志.txt」窗口 —— 请截图发给开发者；
+            - 若没弹出，就在本文件夹里手动打开「运行日志.txt」和「终端输出.txt」，
+              一起截图发过去。里面记录了程序走到哪一步崩的。
 
           提示：
             - 首次运行若 UOS 安全中心拦截，选择“允许/仍要运行”。
             - 若手机打不开网页，放行 8765 端口（UOS 安全中心 → 防火墙）。
-            - 直接说“发送”可解放双手：说完自动上屏并回车（微信里直接发出）。
+            - 说“发送”可解放双手：说完自动上屏并回车（微信里直接发出）。
           TXT
-          ( cd out && zip -r ../PhoneVoice-UOS-x64.zip UOS-Portable-PhoneVoice )
-          echo "产物：" && ls -la PhoneVoice-UOS-x64.zip
+          ( cd out && zip -r ../PhoneVoice-UOS-x64-1.4.9.zip UOS-Portable-PhoneVoice )
+          echo "产物：" && ls -la PhoneVoice-UOS-x64-1.4.9.zip
       - name: verify-under-xvfb
         run: xvfb-run -a bash -c 'timeout 12 ./out/UOS-Portable-PhoneVoice/PhoneVoice; echo "EXIT=$?"' 2>&1 | tail -20
       - uses: actions/upload-artifact@v4
         with:
           name: uos-x64
-          path: PhoneVoice-UOS-x64.zip
+          path: PhoneVoice-UOS-x64-1.4.9.zip
