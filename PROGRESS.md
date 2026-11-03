@@ -6,10 +6,10 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.10 | ✅ 本地构建可用，等待云端发布 |
-| Windows x64 | v1.4.10 | ⏳ 云端构建中 |
-| Mac（Intel） | v1.4.10 | ⏳ 云端构建中 |
-| Vision Pro | v1.4.10 | ⏳ 网页版与网页包发布中 |
+| Mac（Apple 芯片） | v1.4.10 | ✅ 已构建发布 |
+| Windows x64 | v1.4.10 | ✅ 已构建发布 |
+| Mac（Intel） | v1.4.10 | ✅ 已构建发布 |
+| Vision Pro | v1.4.10 | ✅ 网页版与网页包已发布 |
 
 ## 功能
 
@@ -50,7 +50,7 @@
 ## GitHub 发布
 
 - 仓库：https://github.com/blackorwhite12/phonevoice
-- 最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.2.8
+- 最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.10
 - 本地存档：`releases/v1.2.8/`（Mac zip + Windows exe）
 - 发布新版本：改完代码后执行
   `git add -A && git commit -m "说明" && git tag vX.Y.Z && git push origin HEAD --tags`
