@@ -21,7 +21,7 @@ if errorlevel 1 (
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
-.venv\Scripts\pyinstaller --noconfirm --windowed --name "语音输入电脑" ^
+.venv\Scripts\pyinstaller --noconfirm --windowed --name "声连" ^
   --icon app.ico ^
   --add-data "index.html;." ^
   --add-data "qr.html;." ^
@@ -37,5 +37,5 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo 打包完成：dist\语音输入电脑.exe
+echo 打包完成：dist\声连.exe
 pause

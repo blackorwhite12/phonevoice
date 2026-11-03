@@ -24,7 +24,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-APP_VERSION = "1.4.9"  # 显示用版本号，与 git tag 保持一致
+APP_VERSION = "1.4.10"  # 显示用版本号，与 git tag 保持一致
 NO_TYPE = os.environ.get("NO_TYPE") == "1"  # 测试用：只返回结果，不真正模拟键盘
 LOG_PATH = Path.home() / "Library" / "Logs" / "phonevoice.log"
 IS_WINDOWS = sys.platform.startswith("win")
@@ -217,8 +217,11 @@ def add_firewall_rule_windows() -> bool:
         return False
 
 
-def type_text(text: str) -> tuple[str, str]:
-    """把文字输入到当前聚焦的应用，返回 (使用方式, 补充说明)。"""
+def type_text(text: str, auto_enter: bool | None = None) -> tuple[str, str]:
+    """把文字输入到当前聚焦的应用，返回 (使用方式, 补充说明)。
+
+    auto_enter 为 None 时沿用全局设置；手机端可针对本次发送单独指定。
+    """
     text = text.strip()
     log(f"type_text 收到: {text!r}")
     if not text:
@@ -250,7 +253,12 @@ def type_text(text: str) -> tuple[str, str]:
 
     # 解放双手：粘贴成功后自动按一次回车（等文字落地再按，更稳）
     success_methods = ("paste", "cgevent", "keystroke") if not IS_WINDOWS else ("paste",)
-    if method in success_methods and get_settings().get("auto_enter"):
+    should_enter = (
+        bool(get_settings().get("auto_enter"))
+        if auto_enter is None
+        else bool(auto_enter)
+    )
+    if method in success_methods and should_enter:
         press_enter()
     return method, detail
 
@@ -385,7 +393,8 @@ def type_with_cgevent(text: str) -> bool:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/qr.png":
+        path = urllib.parse.urlsplit(self.path).path
+        if path == "/qr.png":
             # 二维码随 IP 变化，动态生成，App 打包后无需落盘
             from io import BytesIO
 
@@ -414,8 +423,8 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._json({"ok": True, "id": max(after, TO_PHONE["id"]), "text": None})
             return
-        if self.path in STATIC_FILES:
-            filename, ctype = STATIC_FILES[self.path]
+        if path in STATIC_FILES:
+            filename, ctype = STATIC_FILES[path]
             data = resource_path(filename).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", ctype)
@@ -424,9 +433,9 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
-        if self.path == "/health":
+        if path == "/health":
             self._json({"ok": True, "version": APP_VERSION})
-        elif self.path == "/settings":
+        elif path == "/settings":
             self._json({"ok": True, **get_settings()})
         else:
             self.send_error(404)
@@ -482,6 +491,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = json.loads(self.rfile.read(length) or b"{}")
             text = str(data.get("text", ""))
+            enter_override = (
+                bool(data["enter"]) if isinstance(data.get("enter"), bool) else None
+            )
         except Exception:
             self._json({"ok": False, "error": "bad request"}, 400)
             return
@@ -494,7 +506,7 @@ class Handler(BaseHTTPRequestHandler):
         LAST_SEND["text"] = text
         LAST_SEND["time"] = now
         try:
-            method, detail = type_text(text)
+            method, detail = type_text(text, auto_enter=enter_override)
             LAST_FROM_PHONE["text"] = text
             self._json({"ok": True, "method": method, "detail": detail})
         except Exception as e:

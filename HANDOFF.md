@@ -1,6 +1,6 @@
 # 手机语音输入 → 电脑 · 交接文档
 
-> 生成时间：2026-08-30（最新版本 v1.4.6）
+> 当前版本：v1.4.10（2026-11-03）
 > 给新对话用：直接说“打开 /Users/awa12/Documents/ChatGPT/13.手机语音输入电脑直接显示/HANDOFF.md 继续语音输入项目”
 
 ## 一、项目是什么
@@ -17,11 +17,12 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.6 | ✅ 云端已构建发布 |
-| Windows x64 | v1.4.6 | ✅ 云端已构建发布 |
-| Mac（Intel） | v1.4.6 | ✅ 云端已构建发布 |
+| Mac（Apple 芯片） | v1.4.10 | ⏳ 本次发布构建 |
+| Windows x64 | v1.4.10 | ⏳ 本次发布构建 |
+| Mac（Intel） | v1.4.10 | ⏳ 本次发布构建 |
+| Vision Pro 网页版 | v1.4.10 | ⏳ 本次发布构建 |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.6
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.10
 
 ## 三、重要：发布流程新规则（用户明确要求）
 
@@ -59,6 +60,8 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
   （两个功能分区卡片、标题改“手机语音，电脑同步 / 电脑复制，手机粘贴”、二维码缩小、豆包输入法提示）
 - v1.4.6：修复两个 bug——① 手机页首次轮询不再跳过已有内容（Mac 首次复制后必显示）
   ② Windows 局域网 IP 选择更稳（过滤虚拟网卡/链路本地地址、主网卡排前、自动刷新、无 IP 时红字提示）
+- v1.4.10：四宫格电脑界面、三档语音发送、自动复制/编辑手机端内容、
+  断线自动重连、刷新恢复与 Vision Pro 网页版。
 
 ## 五、当前界面布局（v1.4.4）
 
@@ -114,7 +117,7 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
 ## 九、待办 / 下一步
 
 - 注意：改完先本地给用户看，满意后等“发布”再推
-- Intel Mac 产物暂未自动附加到 Release（发布 job 只依赖 Windows + Apple 芯片），需要的话后续补
+- Linux/UOS 版本本轮暂不发布；相关工作流仍保留为手动构建。
 - 可选增强：配对验证码、跨网络中转、自动发现（Bonjour）、手机原生 App
 - 代码签名/公证（Mac 公证 + Windows 签名），解决首次打开拦截提示
 

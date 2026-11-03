@@ -58,7 +58,7 @@ jobs:
         run: python make_icons.py
       - name: 打包 app
         run: |
-          pyinstaller --noconfirm --windowed --name "语音输入电脑" \
+          pyinstaller --noconfirm --windowed --name "声连" \
             --osx-bundle-identifier com.phonevoice.app \
             --icon AppIcon.icns \
             --add-data "index.html:." \
@@ -68,14 +68,21 @@ jobs:
             --add-data "icon-512.png:." \
             --add-data "apple-touch-icon.png:." \
             app.py
+      - name: 写入版本号
+        run: |
+          APP_VERSION=$(python -c "import server; print(server.APP_VERSION)")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "dist/声连.app/Contents/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $APP_VERSION" "dist/声连.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "dist/声连.app/Contents/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $APP_VERSION" "dist/声连.app/Contents/Info.plist"
       - name: 固定签名身份
         run: |
           codesign --force --deep --sign - \
             --identifier com.phonevoice.app \
             --requirements '=designated => identifier "com.phonevoice.app"' \
-            "dist/语音输入电脑.app"
+            "dist/声连.app"
       - name: 压缩为 zip
-        run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "PhoneVoice-macos-arm64.zip"
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/声连.app" "PhoneVoice-macos-arm64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-arm64
@@ -84,7 +91,6 @@ jobs:
   build-macos-x64:
     name: macOS Intel
     runs-on: macos-15-intel
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -96,7 +102,7 @@ jobs:
         run: python make_icons.py
       - name: 打包 app
         run: |
-          pyinstaller --noconfirm --windowed --name "语音输入电脑" \
+          pyinstaller --noconfirm --windowed --name "声连" \
             --osx-bundle-identifier com.phonevoice.app \
             --icon AppIcon.icns \
             --add-data "index.html:." \
@@ -106,22 +112,47 @@ jobs:
             --add-data "icon-512.png:." \
             --add-data "apple-touch-icon.png:." \
             app.py
+      - name: 写入版本号
+        run: |
+          APP_VERSION=$(python -c "import server; print(server.APP_VERSION)")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "dist/声连.app/Contents/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $APP_VERSION" "dist/声连.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "dist/声连.app/Contents/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $APP_VERSION" "dist/声连.app/Contents/Info.plist"
       - name: 固定签名身份
         run: |
           codesign --force --deep --sign - \
             --identifier com.phonevoice.app \
             --requirements '=designated => identifier "com.phonevoice.app"' \
-            "dist/语音输入电脑.app"
+            "dist/声连.app"
       - name: 压缩为 zip
-        run: ditto -c -k --sequesterRsrc --keepParent "dist/语音输入电脑.app" "PhoneVoice-macos-x64.zip"
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/声连.app" "PhoneVoice-macos-x64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-x64
           path: PhoneVoice-macos-x64.zip
 
+  build-visionpro:
+    name: Vision Pro 网页版
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 打包 Vision Pro 页面
+        run: |
+          mkdir -p vp-package
+          cp docs/vp.html vp-package/index.html
+          cp 声连-VisionPro说明.md vp-package/使用说明.md
+          cp icon-192.png vp-package/icon-192.png
+          cd vp-package
+          zip -r ../PhoneVoice-visionpro-web.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visionpro-web
+          path: PhoneVoice-visionpro-web.zip
+
   release:
     name: 发布 Release
-    needs: [build-windows, build-macos-arm64]
+    needs: [build-windows, build-macos-arm64, build-macos-x64, build-visionpro]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -131,6 +162,6 @@ jobs:
       - name: 列出产物
         run: find artifacts -type f
       - name: 发布到 Releases
-        run: gh release create "$GITHUB_REF_NAME" artifacts/*/* --repo "$GITHUB_REPOSITORY" --title "语音输入电脑 $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" artifacts/*/* --repo "$GITHUB_REPOSITORY" --title "声连 $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
         env:
           GH_TOKEN: ${{ github.token }}

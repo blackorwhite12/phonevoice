@@ -3,303 +3,496 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#ffe9f1">
+<meta name="theme-color" content="#fff8fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>手机语音输入 → 电脑</title>
+<title>声连（手机端）</title>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 18px 16px 24px; min-height: 100vh;
-    font-family: "Wawati SC", "Hannotate SC", "Yuanti SC", "YouYuan", "Comic Sans MS", sans-serif;
-    background: linear-gradient(165deg, #ffe9f1 0%, #e8f4ff 55%, #f3e8ff 100%);
-    color: #5b4a6b;
+    margin: 0; padding: max(16px, env(safe-area-inset-top)) 14px
+      calc(24px + env(safe-area-inset-bottom));
+    min-height: 100vh; min-height: 100dvh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(255, 181, 209, .36), transparent 28%),
+      radial-gradient(circle at 92% 76%, rgba(155, 201, 255, .26), transparent 32%),
+      linear-gradient(168deg, #fff9fc 0%, #f8fbff 52%, #fbf7ff 100%);
+    color: #403548;
     display: flex; flex-direction: column;
-    position: relative;
   }
-  /* 漂浮装饰 */
-  body::before, body::after {
-    position: fixed; font-size: 46px; opacity: .32; pointer-events: none; z-index: 0;
-  }
-  body::before { content: "☁️"; top: 24px; right: 18px; animation: floaty 4s ease-in-out infinite; }
-  body::after { content: "⭐"; bottom: 70px; left: 16px; animation: floaty 5s ease-in-out infinite reverse; }
-  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
   h1 {
-    font-size: 23px; margin: 6px 0 6px; color: #ff7bac; z-index: 1;
-    text-shadow: 0 2px 0 rgba(255,255,255,.7); letter-spacing: 1px;
+    margin: 2px 0 7px; color: #403548; font-size: 28px; line-height: 1.2;
+    text-align: center; letter-spacing: .5px; font-weight: 800;
   }
+  h1 span { color: #eb5e92; font-size: .78em; font-weight: 700; }
   .status {
-    font-size: 14px; color: #8fb06a; margin-bottom: 14px; z-index: 1;
+    width: fit-content; margin: 0 auto 14px; padding: 5px 11px;
+    color: #648358; background: rgba(244, 251, 239, .9);
+    border: 1px solid #dbead2; border-radius: 999px;
+    font-size: 12px; text-align: center;
   }
-  textarea {
-    flex: 1; min-height: 210px; font-size: 18px; line-height: 1.6;
-    background: rgba(255,255,255,.92); color: #5b4a6b;
-    border: 3px solid #ffb6d5; border-radius: 26px;
-    padding: 16px 18px; resize: none; outline: none; z-index: 1;
-    box-shadow: 0 8px 24px rgba(255,150,190,.28), inset 0 2px 8px rgba(255,205,225,.35);
-    font-family: inherit;
+  .status-dot {
+    display: inline-block; width: 7px; height: 7px; margin-right: 6px;
+    background: #76a867; border-radius: 50%; vertical-align: 1px;
   }
-  textarea::placeholder { color: #cdb9dc; }
-  textarea:focus { border-color: #ff8fc0; }
-  button {
-    margin-top: 14px; padding: 16px; font-size: 20px; font-weight: 700;
-    background: linear-gradient(135deg, #ff9ecb, #ff6fb0);
-    color: #fff; border: none; border-radius: 999px; z-index: 1;
-    box-shadow: 0 6px 0 #e05694, 0 12px 24px rgba(255,110,175,.35);
-    font-family: inherit; letter-spacing: 2px;
-    transition: transform .1s, box-shadow .1s;
+  .status.offline { color: #a46f6f; background: #fff4f4; border-color: #f0d6d6; }
+  .status.offline .status-dot { background: #d77a7a; }
+  .composer {
+    display: grid; grid-template-columns: minmax(0, 1fr) 108px;
+    gap: 10px; padding: 10px;
+    background: rgba(255,255,255,.88); border: 2px solid #f3bfd2;
+    border-radius: 25px;
+    box-shadow: 0 12px 32px rgba(195, 118, 149, .12);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
-  button:active { transform: translateY(4px); box-shadow: 0 2px 0 #e05694; }
-  button:disabled { opacity: .6; transform: none; box-shadow: 0 4px 0 #e05694; }
-  .hf {
-    margin-top: 12px; padding: 14px; width: 100%; font-size: 17px; font-weight: 700;
-    background: linear-gradient(135deg, #b7e4a2, #8fb06a); color: #fff;
-    border: none; border-radius: 999px; letter-spacing: 1px; cursor: pointer; z-index: 1;
-    box-shadow: 0 5px 0 #6f9552, 0 10px 20px rgba(143,176,106,.35);
-    font-family: inherit;
+  #input {
+    width: 100%; min-height: 190px; margin: 0; padding: 10px 8px;
+    color: #403548; background: #fffafc; border: 0; border-radius: 16px;
+    font: 17px/1.55 inherit; resize: none; outline: none;
   }
-  .hf.on {
-    background: linear-gradient(135deg, #ff9ecb, #ff6fb0);
-    box-shadow: 0 5px 0 #e05694, 0 10px 20px rgba(255,110,175,.35);
+  #input::placeholder { color: #ad9fb4; }
+  .modes {
+    display: flex; flex-direction: column; gap: 7px; padding: 4px;
+    background: #fff7fa; border: 1px solid #f2dce5; border-radius: 18px;
   }
-  .opt {
-    margin-top: 14px; font-size: 14px; color: #9b87ac; z-index: 1;
+  .mode {
+    flex: 1; min-height: 0; margin: 0; padding: 7px 4px;
+    color: #b96989; background: rgba(255,255,255,.78);
+    border: 1px solid #f1cedc; border-radius: 13px;
+    font: 700 11.5px/1.3 inherit; letter-spacing: 0;
+    box-shadow: none; cursor: pointer;
+  }
+  .mode[aria-pressed="true"] {
+    color: #fff; background: linear-gradient(145deg, #f589b2, #e9588d);
+    border-color: #e9588d; box-shadow: 0 5px 12px rgba(218, 75, 129, .22);
+  }
+  .mode.manual-send {
+    font-size: 21px; font-weight: 800; letter-spacing: 3px;
+  }
+  .mode:active { transform: translateY(2px); box-shadow: none; }
+  .mode:focus-visible { outline: 2px solid #6e9ddf; outline-offset: 2px; }
+  .status-box {
     display: flex; align-items: center; gap: 8px;
+    min-height: 38px; padding: 8px 13px;
+    border-radius: 15px; font-size: 12px; line-height: 1.4;
   }
-  .opt input { width: 20px; height: 20px; accent-color: #ff7bac; }
-  #msg { margin-top: 10px; font-size: 15px; color: #ff7bac; min-height: 22px; z-index: 1; }
-  .hint {
-    font-size: 13px; color: #c99700; margin-bottom: 10px; z-index: 1;
+  .status-box::before {
+    content: ""; flex: 0 0 auto; width: 7px; height: 7px;
+    border-radius: 50%;
   }
+  .status-rose {
+    margin: 9px 0 18px; color: #b9547d;
+    background: #fff6f9; border: 2px solid #f3c5d6;
+  }
+  .status-rose::before { background: #e86e9f; }
   .rx-card {
-    background: #fff; border: 3px solid #ffb6d5; border-radius: 26px;
-    padding: 14px 16px; margin-bottom: 14px; z-index: 1;
-    box-shadow: 0 8px 24px rgba(122, 168, 255, .22);
+    padding: 14px 15px 15px;
+    background: linear-gradient(150deg, rgba(248, 252, 255, .96), rgba(241, 248, 255, .96));
+    border: 2px solid #cfe3fb; border-radius: 23px;
+    box-shadow: 0 12px 30px rgba(87, 142, 204, .11);
   }
-  .rx-title { font-size: 15px; color: #7fb8ff; font-weight: 700; margin-bottom: 8px; }
+  .status-blue {
+    margin-top: 8px; color: #557b9f;
+    background: #f4f9ff; border: 2px solid #cfe3fb;
+  }
+  .status-blue::before { background: #72a9e7; }
+  .rx-title {
+    display: flex; align-items: center; margin-bottom: 9px;
+    color: #497fb8; font-size: 14px; font-weight: 700;
+  }
+  .rx-title::before {
+    content: ""; width: 7px; height: 7px; margin-right: 7px;
+    background: #78adf0; border-radius: 50%;
+  }
+  .rx-body {
+    display: grid; grid-template-columns: minmax(0, 1fr) 88px;
+    gap: 9px; align-items: stretch;
+  }
   #received {
-    width: 100%; min-height: 90px; max-height: 220px; font-size: 16px; line-height: 1.5;
-    background: #f6fbff; color: #5b4a6b; border: 2px solid #cfe4ff; border-radius: 18px;
-    padding: 12px 14px; resize: vertical; outline: none; font-family: inherit;
+    width: 100%; min-height: 128px; max-height: 220px; overflow-y: auto;
+    padding: 12px 13px; color: #465468; background: rgba(255,255,255,.9);
+    border: 1px solid #dceafb; border-radius: 16px;
+    font: 16px/1.55 inherit; white-space: pre-wrap; overflow-wrap: anywhere;
+    outline: none; resize: none; user-select: text; -webkit-user-select: text;
   }
-  #rxCopy {
-    margin-top: 10px; padding: 12px; font-size: 17px; width: 100%;
-    background: linear-gradient(135deg, #a9d0ff, #7fb8ff); color: #fff;
-    border: none; border-radius: 999px; letter-spacing: 1px;
-    box-shadow: 0 5px 0 #5f97d9, 0 10px 20px rgba(127,184,255,.32);
-    font-family: inherit;
+  #received::placeholder { color: #a9b7c6; }
+  #received:not([readonly]) {
+    border-color: #82b5ee; box-shadow: 0 0 0 3px rgba(126, 177, 235, .14);
   }
-  #rxCopy:active { transform: translateY(3px); box-shadow: 0 2px 0 #5f97d9; }
-  #rxMsg { margin-top: 8px; font-size: 13px; color: #9b87ac; min-height: 18px; }
-  .ver { margin-top: 12px; font-size: 12px; color: #cdb9dc; text-align: center; z-index: 1; }
+  .copy-modes { display: flex; flex-direction: column; gap: 7px; }
+  .copy-mode {
+    flex: 1; min-height: 42px; margin: 0; padding: 6px 4px;
+    color: #527da9; background: rgba(255,255,255,.78);
+    border: 1px solid #cbdcf0; border-radius: 13px;
+    font: 700 11px/1.3 inherit; letter-spacing: 0;
+    box-shadow: none; cursor: pointer;
+  }
+  .copy-mode[aria-pressed="true"] {
+    color: #fff; background: linear-gradient(145deg, #86b8ee, #5f99df);
+    border-color: #5f99df; box-shadow: 0 5px 12px rgba(69, 128, 195, .2);
+  }
+  .copy-mode:focus-visible { outline: 2px solid #6e9ddf; outline-offset: 2px; }
+  .ver {
+    margin-top: auto; padding-top: 18px; color: #b3a7b8;
+    font-size: 11px; text-align: center;
+  }
+  [hidden] { display: none !important; }
+  @media (max-width: 350px) {
+    body { padding-left: 10px; padding-right: 10px; }
+    .composer { grid-template-columns: minmax(0, 1fr) 98px; gap: 8px; padding: 8px; }
+    .mode { font-size: 11px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
-<h1>🎤 手机语音输入</h1>
-<div class="status">🐰 已经连上电脑啦，点下面的框框直接说话～</div>
-<div class="hint">💡 建议使用豆包输入法语音输入</div>
-<div class="rx-card" id="rxCard" hidden>
-  <div class="rx-title">📥 电脑复制过来了</div>
-  <textarea id="received" readonly></textarea>
-  <button id="rxCopy">📋 复制到手机</button>
-  <div id="rxMsg"></div>
+<h1>声连<span>（手机端）</span></h1>
+<div class="status" id="status"><span class="status-dot"></span><span id="connection">连接状态：正在连接电脑…</span></div>
+
+<div class="composer">
+  <textarea id="input"
+    placeholder="点这里说话，说完说暗号“发送”，文字自动飞到电脑里并自动回车"
+    autocomplete="off" autocapitalize="off" spellcheck="false"
+    enterkeyhint="send" autofocus></textarea>
+  <div class="modes" aria-label="发送方式">
+    <button class="mode" type="button" data-mode="1" aria-pressed="true">说“发送”<br>并回车</button>
+    <button class="mode" type="button" data-mode="2" aria-pressed="false">说“发送”<br>不回车</button>
+    <button class="mode" type="button" data-mode="3" aria-pressed="false">只点“发送”<br>才发送</button>
+  </div>
 </div>
-<textarea id="input" placeholder="点这里说话哦，说完自动飞到电脑里 ✨" autofocus></textarea>
-<button id="send">✈️ 发送到电脑</button>
-<label class="opt"><input type="checkbox" id="auto" checked> 🎀 说完自动发送（打字时关掉哦）</label>
-<button id="handsfree" class="hf">🆓 解放双手：关，说“发送”才发送</button>
-<div id="msg"></div>
-<div id="ver" class="ver">正在连接电脑…</div>
+<div id="msg" class="status-box status-rose" role="status" aria-live="polite">发送状态：等待语音输入…</div>
+
+<section class="rx-card" id="rxCard" aria-live="polite">
+  <div class="rx-title">从电脑复制过来内容</div>
+  <div class="rx-body">
+    <textarea id="received" readonly
+      placeholder="电脑复制的文字会显示在这里"
+      spellcheck="false"></textarea>
+    <div class="copy-modes" aria-label="电脑文字复制方式">
+      <button class="copy-mode" id="autoCopy" type="button" aria-pressed="true">自动<br>复制</button>
+      <button class="copy-mode" id="copyNow" type="button">复制<br>当前</button>
+      <button class="copy-mode" id="editReceived" type="button" aria-pressed="false">编辑<br>内容</button>
+    </div>
+  </div>
+</section>
+<div id="rxMsg" class="status-box status-blue" role="status" aria-live="polite">复制状态：等待电脑复制文字…</div>
+
+<div class="ver" id="ver">电脑端版本：正在连接…</div>
+
 <script>
 const input = document.getElementById('input');
-const sendBtn = document.getElementById('send');
-const auto = document.getElementById('auto');
-const hfBtn = document.getElementById('handsfree');
+const modeButtons = [...document.querySelectorAll('.mode')];
 const msg = document.getElementById('msg');
-let timer = null;
+const connection = document.getElementById('connection');
+const statusPanel = document.getElementById('status');
+const rxCard = document.getElementById('rxCard');
+const received = document.getElementById('received');
+const rxMsg = document.getElementById('rxMsg');
+const autoCopyButton = document.getElementById('autoCopy');
+const copyNowButton = document.getElementById('copyNow');
+const editReceivedButton = document.getElementById('editReceived');
 const SEND_WORD = '发送';
-let handsfree = false;
-
+let timer = null;
+let sendMode = 1;
 let lastSentText = '';
 let lastSentAt = 0;
-function sendText(forceText) {
-  const text = (forceText != null ? forceText : input.value).trim();
+let lastRxId = 0;
+let pendingRxText = '';
+let autoCopy = true;
+let editing = false;
+
+try {
+  const savedMode = Number(localStorage.getItem('shenglian-send-mode'));
+  if ([1, 2, 3].includes(savedMode)) sendMode = savedMode;
+  const savedAutoCopy = localStorage.getItem('shenglian-auto-copy');
+  const legacyCopyMode = localStorage.getItem('shenglian-copy-mode');
+  if (savedAutoCopy != null) autoCopy = savedAutoCopy === 'true';
+  else if (legacyCopyMode != null) autoCopy = legacyCopyMode !== 'manual';
+} catch (e) {}
+
+function setSendMode(mode) {
+  sendMode = mode;
+  const manualButton = modeButtons.find(
+    (button) => Number(button.dataset.mode) === 3,
+  );
+  modeButtons.forEach((button) => {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.mode) === mode));
+  });
+  manualButton.classList.toggle('manual-send', mode === 3);
+  manualButton.innerHTML = mode === 3 ? '发送' : '只点“发送”<br>才发送';
+  try { localStorage.setItem('shenglian-send-mode', String(mode)); } catch (e) {}
+  input.focus();
+}
+
+function sendText(forceText, withEnter) {
+  const source = forceText != null ? forceText : input.value;
+  const text = source.trim();
   if (!text) return;
-  // 防重复：输入法偶发补发事件，同一句话 3 秒内只发一次
+
   const now = Date.now();
-  if (text === lastSentText && (now - lastSentAt) < 3000) { input.value = ''; return; }
+  if (text === lastSentText && now - lastSentAt < 3000) {
+    input.value = '';
+    return;
+  }
   lastSentText = text;
   lastSentAt = now;
-  // 立即清空输入框并取消待发定时器，避免同一句话被多个事件
-  // （input / compositionend 会先后触发）重复发送，导致“说一遍发多遍”。
+
   clearTimeout(timer);
   input.value = '';
-  sendBtn.disabled = true;
+  msg.textContent = '发送状态：正在发送…';
+
   fetch('/send', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({text: text})
-  }).then(r => r.json()).then(d => {
-    if (d.ok) {
-      if (d.method === 'clipboard') {
-        msg.textContent = '😿 电脑没授权键盘权限，文字先进剪贴板啦，手动 Cmd+V 一下下（Mac）';
-      } else {
-        msg.textContent = '🎉 已经飞到电脑上啦！';
-      }
+    body: JSON.stringify({text, enter: Boolean(withEnter)})
+  }).then((response) => response.json()).then((data) => {
+    if (!data.ok) throw new Error(data.error || '未知错误');
+    if (data.method === 'clipboard') {
+      msg.textContent = '发送状态：文字已放进电脑剪贴板，请按 Ctrl+V 或 Cmd+V。';
     } else {
-      msg.textContent = '😵 发送失败：' + (d.error || '未知错误');
-      input.value = text; // 失败还原，别丢字
+      msg.textContent = withEnter
+        ? '发送状态：已发送到电脑，并已回车。'
+        : '发送状态：已发送到电脑，没有回车。';
     }
-  }).catch(() => {
-    msg.textContent = '😵 发送失败，电脑端的小程序是不是关掉啦？';
-    input.value = text; // 失败还原，别丢字
+  }).catch((error) => {
+    msg.textContent = '发送状态：发送失败，' + error.message;
+    input.value = text;
   }).finally(() => {
-    sendBtn.disabled = false;
     input.focus();
   });
 }
 
-sendBtn.addEventListener('click', sendText);
-
-function stripSendWord(t) {
-  // 去掉结尾的“发送”及可能的标点/空白（发送二字不进入电脑）
-  return t.replace(new RegExp(SEND_WORD + '\\s*[。．.!！?？]*$'), '');
+function stripSendWord(text) {
+  return text.replace(new RegExp(SEND_WORD + '\\s*[。．.!！?？]*$'), '');
 }
 
-function maybeTriggerSend() {
-  if (!handsfree) return;
+function hasSendWord(text) {
+  return new RegExp(SEND_WORD + '\\s*[。．.!！?？]*$').test(text);
+}
+
+function maybeSendByKeyword() {
+  if (sendMode === 3) return;
   const raw = input.value;
-  const body = stripSendWord(raw);
-  if (body !== raw) {
-    sendText(body); // 发送后 sendText 会清空
-  }
+  if (!hasSendWord(raw)) return;
+  const body = stripSendWord(raw).trim();
+  if (!body) return;
+  sendText(body, sendMode === 1);
 }
 
-function setHandsfree(on) {
-  handsfree = on;
-  if (on) {
-    hfBtn.textContent = '🆓 解放双手：开（说“发送”就发送并清空）';
-    hfBtn.classList.add('on');
-    auto.disabled = true;
-    clearTimeout(timer);
-    input.focus();
-    msg.textContent = '✋ 免提中：接着说话即可，说“发送”才发送';
-  } else {
-    hfBtn.textContent = '🆓 解放双手：关，说“发送”才发送';
-    hfBtn.classList.remove('on');
-    auto.disabled = false;
-    msg.textContent = '';
-  }
+function scheduleKeywordCheck(delay) {
+  clearTimeout(timer);
+  timer = setTimeout(maybeSendByKeyword, delay);
 }
-hfBtn.addEventListener('click', () => setHandsfree(!handsfree));
 
-// 语音/输入法确认结束（compositionend）后，稍等片刻自动发送
-input.addEventListener('compositionend', () => {
-  if (handsfree) { maybeTriggerSend(); return; }
-  clearTimeout(timer);
-  timer = setTimeout(() => { if (auto.checked) sendText(); }, 700);
+modeButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const nextMode = Number(button.dataset.mode);
+    const pending = input.value.trim();
+    if (nextMode === 3) {
+      if (sendMode === 3) {
+        if (pending) sendText(pending, false);
+        else msg.textContent = '发送状态：先输入文字，再点“发送”。';
+      } else {
+        setSendMode(3);
+        msg.textContent = '发送状态：手动模式，点“发送”发送。';
+      }
+      return;
+    }
+    setSendMode(nextMode);
+  });
 });
 
-// 兜底：英文等不触发 compositionend 的输入法，用停顿检测
-input.addEventListener('input', () => {
-  if (handsfree) { maybeTriggerSend(); return; }
-  if (!auto.checked) return;
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    if (input.value.trim()) sendText();
-  }, 1200);
-});
+input.addEventListener('compositionend', () => scheduleKeywordCheck(120));
+input.addEventListener('input', () => scheduleKeywordCheck(280));
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) input.focus();
+  if (!document.hidden) {
+    input.focus();
+    checkConnection();
+  }
 });
 
-// 电脑 → 手机：轮询接收电脑复制/选中的文字
-const rxCard = document.getElementById('rxCard');
-const received = document.getElementById('received');
-const rxCopy = document.getElementById('rxCopy');
-const rxMsg = document.getElementById('rxMsg');
-let lastRxId = 0;
+function setAutoCopy(enabled) {
+  autoCopy = enabled;
+  autoCopyButton.setAttribute('aria-pressed', String(enabled));
+  autoCopyButton.innerHTML = enabled ? '自动<br>复制' : '自动<br>关闭';
+  try { localStorage.setItem('shenglian-auto-copy', String(enabled)); } catch (e) {}
+}
+
+function saveReceivedCache() {
+  if (!received.value) return;
+  try {
+    sessionStorage.setItem('shenglian-last-received', JSON.stringify({
+      id: lastRxId,
+      text: received.value,
+    }));
+  } catch (e) {}
+}
+
+function restoreReceivedCache() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('shenglian-last-received') || 'null');
+    if (!saved || !saved.text) return;
+    lastRxId = Number(saved.id) || 0;
+    received.value = saved.text;
+    pendingRxText = saved.text;
+    rxCard.hidden = false;
+    rxMsg.textContent = '复制状态：已恢复上次内容，点“复制当前”可重新复制。';
+  } catch (e) {}
+}
+
+async function copyReceivedText(text, automatic = false) {
+  text = (text || '').trim();
+  if (!text) {
+    rxMsg.textContent = '复制状态：还没有可复制的电脑文字。';
+    return false;
+  }
+  let copied = false;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (e) {}
+  }
+  if (!copied) {
+    try {
+      received.focus();
+      received.select();
+      copied = document.execCommand('copy');
+      if (!editing) received.setSelectionRange(received.value.length, received.value.length);
+    } catch (e) {
+      copied = false;
+    }
+  }
+  rxMsg.textContent = copied
+    ? (automatic
+        ? '复制状态：已自动复制，可以直接在手机里粘贴。'
+        : '复制状态：已复制，可以直接在手机里粘贴。')
+    : '复制状态：浏览器未允许自动复制，请点右侧“手动复制”。';
+  pendingRxText = copied ? '' : text;
+  return copied;
+}
+
+async function showReceived(payload) {
+  received.value = payload.text;
+  rxCard.hidden = false;
+  saveReceivedCache();
+  if (autoCopy) {
+    await copyReceivedText(payload.text, true);
+  } else {
+    pendingRxText = payload.text;
+    rxMsg.textContent = '复制状态：已接收电脑文字，点右侧“复制当前”。';
+  }
+  fetch('/to-phone/ack', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({id: payload.id})
+  }).catch(() => {});
+}
+
+function setEditing(enabled) {
+  editing = enabled;
+  received.readOnly = !enabled;
+  editReceivedButton.setAttribute('aria-pressed', String(enabled));
+  editReceivedButton.innerHTML = enabled ? '完成<br>编辑' : '编辑<br>内容';
+  if (enabled) {
+    received.focus();
+    received.setSelectionRange(received.value.length, received.value.length);
+    rxMsg.textContent = '复制状态：编辑中，完成后可复制当前内容。';
+  } else {
+    saveReceivedCache();
+    rxMsg.textContent = '复制状态：编辑已保存，点“复制当前”更新剪贴板。';
+  }
+}
+
+autoCopyButton.addEventListener('click', () => {
+  setAutoCopy(!autoCopy);
+  if (autoCopy && received.value.trim()) {
+    copyReceivedText(received.value, true);
+  } else {
+    rxMsg.textContent = autoCopy
+      ? '复制状态：自动复制已开启。'
+      : '复制状态：自动复制已关闭，点“复制当前”。';
+  }
+});
+copyNowButton.addEventListener('click', () => copyReceivedText(received.value));
+editReceivedButton.addEventListener('click', () => setEditing(!editing));
+received.addEventListener('input', saveReceivedCache);
+received.addEventListener('click', () => {
+  if (!editing) copyReceivedText(received.value);
+});
+document.addEventListener('pointerdown', () => {
+  if (pendingRxText && autoCopy && !editing) copyReceivedText(pendingRxText, true);
+}, {capture: true});
 
 async function pollRx() {
   try {
-    const r = await fetch('/to-phone/latest?after=' + lastRxId);
-    const d = await r.json();
-    if (!d.ok) return;
-    if (d.text != null && d.id > lastRxId) {
-      lastRxId = d.id;
-      received.value = d.text;
-      rxCard.hidden = false;
-      rxMsg.textContent = '';
-      // 用户正在输入/说话时不要抢走焦点，避免发送后跳走
-      if (document.activeElement !== input) {
-        received.focus();
-        received.select();
-        received.setSelectionRange(0, received.value.length);
-      }
-    } else if (d.id > lastRxId) {
-      // 服务端已前进但没有待显示文本（例如已被确认过），跳过旧 id
-      lastRxId = d.id;
+    const response = await fetch('/to-phone/latest?after=' + lastRxId);
+    const data = await response.json();
+    if (!data.ok) return;
+    if (data.text != null && data.id > lastRxId) {
+      lastRxId = data.id;
+      await showReceived({text: data.text, id: data.id});
+    } else if (data.id > lastRxId) {
+      lastRxId = data.id;
     }
-  } catch (e) {}
+  } catch (e) {
+    setConnectionState(false);
+  }
 }
 setInterval(pollRx, 1500);
+restoreReceivedCache();
 pollRx();
 
-// 与电脑端同步“说完自动发送”开关（电脑端也能勾选）
-function loadAutoSend() {
-  fetch('/settings').then(r => r.json()).then(d => {
-    if (d.ok && typeof d.phone_auto_send === 'boolean' &&
-        auto.checked !== d.phone_auto_send) {
-      auto.checked = d.phone_auto_send;
-    }
-  }).catch(() => {});
-}
-function saveAutoSend() {
-  fetch('/settings', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({phone_auto_send: auto.checked})
-  }).catch(() => {});
-}
-auto.addEventListener('change', saveAutoSend);
-loadAutoSend();
-setInterval(loadAutoSend, 3000);
+let reconnectTimer = null;
 
-rxCopy.addEventListener('click', () => {
-  const text = received.value;
-  if (!text) return;
-  received.focus();
-  received.select();
-  received.setSelectionRange(0, text.length);
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-  rxMsg.textContent = ok ? '🎉 已复制，去别处粘贴吧' : '😿 复制失败，请长按文字手动复制';
-  if (ok) {
-    rxCard.hidden = true;
-    received.value = '';
-    // 通知电脑端已确认，下次打开不再重复显示
-    fetch('/to-phone/ack', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id: lastRxId})
-    }).catch(() => {});
+function setConnectionState(connected, version) {
+  statusPanel.classList.toggle('offline', !connected);
+  connection.textContent = connected
+    ? '连接状态：已连接电脑'
+    : '连接状态：已断开，正在自动重连…';
+  if (connected) {
+    document.getElementById('ver').textContent =
+      '电脑端版本 v' + (version || '?');
+  } else {
+    document.getElementById('ver').textContent = '电脑端版本：连接已断开';
   }
-});
+}
 
-// 显示电脑端版本，方便确认连的是新版
-fetch('/health').then(r => r.json()).then(d => {
-  document.getElementById('ver').textContent =
-    '🖥️ 电脑端版本 v' + (d.version || '?');
-}).catch(() => {
-  document.getElementById('ver').textContent = '😵 连不上电脑端';
-});
+async function checkConnection() {
+  clearTimeout(reconnectTimer);
+  const controller = typeof AbortController === 'function'
+    ? new AbortController()
+    : null;
+  const abortTimer = controller
+    ? setTimeout(() => controller.abort(), 2500)
+    : null;
+  try {
+    const response = await fetch('/health?time=' + Date.now(), {
+      cache: 'no-store',
+      signal: controller ? controller.signal : undefined,
+    });
+    if (!response.ok) throw new Error('offline');
+    const data = await response.json();
+    if (!data.ok) throw new Error('offline');
+    setConnectionState(true, data.version);
+  } catch (e) {
+    setConnectionState(false);
+  } finally {
+    if (abortTimer) clearTimeout(abortTimer);
+    reconnectTimer = setTimeout(checkConnection, 3000);
+  }
+}
 
-input.focus();
+setSendMode(sendMode);
+setAutoCopy(autoCopy);
+checkConnection();
 </script>
 </body>
 </html>

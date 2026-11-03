@@ -1,5 +1,5 @@
 #!/bin/bash
-# 打包 Mac App：dist/语音输入电脑.app
+# 打包 Mac App：dist/声连.app
 cd "$(dirname "$0")" || exit 1
 
 if [ ! -d .venv ]; then
@@ -14,7 +14,7 @@ echo "生成图标..."
 
 echo "打包中..."
 rm -rf build dist
-.venv/bin/pyinstaller --noconfirm --windowed --name "语音输入电脑" \
+.venv/bin/pyinstaller --noconfirm --windowed --name "声连" \
   --osx-bundle-identifier com.phonevoice.app \
   --icon AppIcon.icns \
   --add-data "index.html:." \
@@ -28,13 +28,13 @@ rm -rf build dist
 echo "写入版本号..."
 APP_VERSION=$(.venv/bin/python -c "import server; print(server.APP_VERSION)")
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" \
-  "dist/语音输入电脑.app/Contents/Info.plist" 2>/dev/null \
+  "dist/声连.app/Contents/Info.plist" 2>/dev/null \
   || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $APP_VERSION" \
-  "dist/语音输入电脑.app/Contents/Info.plist"
+  "dist/声连.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" \
-  "dist/语音输入电脑.app/Contents/Info.plist" 2>/dev/null \
+  "dist/声连.app/Contents/Info.plist" 2>/dev/null \
   || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $APP_VERSION" \
-  "dist/语音输入电脑.app/Contents/Info.plist"
+  "dist/声连.app/Contents/Info.plist"
 
 # 固定 Designated Requirement 为 bundle id：
 # 授权一次后，以后更新版本（替换 .app）不会再要求重新授权辅助功能。
@@ -42,6 +42,6 @@ echo "固定签名身份（授权只授一次）..."
 codesign --force --deep --sign - \
   --identifier com.phonevoice.app \
   --requirements '=designated => identifier "com.phonevoice.app"' \
-  "dist/语音输入电脑.app"
+  "dist/声连.app"
 
-echo "打包完成：dist/语音输入电脑.app"
+echo "打包完成：dist/声连.app"

@@ -7,6 +7,7 @@
 """
 
 import os
+import re
 import sys
 import pathlib
 
@@ -49,6 +50,7 @@ _diag("1/10 程序启动")
 
 import subprocess
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 _diag("2/10 基础模块导入完成")
 
@@ -68,21 +70,24 @@ IS_WINDOWS = sys.platform.startswith("win")
 _diag("7/10 平台判断完成")
 
 # ---------- Demo 同款色板 ----------
-BG = "#ffe9f1"          # 奶油粉背景
-CARD = "#ffffff"        # 卡片白
-CARD_BD = "#ffb6d5"     # 粉色粗边框
-FG = "#5b4a6b"          # 主文字
-MUTED = "#9b87ac"       # 辅助文字
-PINK = "#ff6fb0"        # 粉色按钮
-PINK_BD = "#e05694"     # 粉按钮按压色
-BLUE = "#7fb8ff"        # 蓝色按钮
-BLUE_BD = "#5f97d9"
-GREEN = "#8fb06a"       # 成功绿
-RED = "#e86a6a"         # 警示红
-YELLOW_BG = "#fff6d8"   # 地址条淡黄
-YELLOW_BD = "#ffd76e"
-YELLOW_TX = "#c99700"
-FONT = "Comic Sans MS" if IS_WINDOWS else "Wawati SC"
+BG = "#fff8fb"          # 柔和粉白背景
+CARD = "#fffdfd"        # 卡片白
+CARD_BD = "#f5dce7"     # 柔和粉边框
+LINE = "#f0e3ea"        # 分隔线
+FG = "#403548"          # 深莓色主文字
+MUTED = "#8d7e94"       # 辅助文字
+PINK = "#ef5f94"        # 品牌粉
+PINK_BD = "#d94d82"     # 粉按钮按压色
+BLUE = "#78aef2"        # 蓝色按钮
+BLUE_BD = "#5f91d2"
+GREEN = "#6f9a66"       # 成功绿
+RED = "#d96767"         # 警示红
+PINK_SOFT = "#ffeaf2"
+BLUE_SOFT = "#eef6ff"
+YELLOW_BG = "#fff7d9"   # 地址条淡黄
+YELLOW_BD = "#f0d991"
+YELLOW_TX = "#a77d12"
+FONT = "Microsoft YaHei" if IS_WINDOWS else "PingFang SC"
 
 
 def check_accessibility() -> bool:
@@ -149,7 +154,7 @@ class RoundCard(tk.Canvas):
         pts = [r, 0, w - r, 0, w, 0, w, r, w, h - r, w, h,
                w - r, h, r, h, 0, h, 0, h - r, 0, r, 0, 0]
         self.create_polygon(pts, smooth=True, fill=self.fill,
-                            outline=self.outline, width=3, tags="bg")
+                            outline=self.outline, width=2, tags="bg")
 
     def place_inner(self, inner):
         self.inner = inner
@@ -167,7 +172,42 @@ class RoundCard(tk.Canvas):
             self.create_window(w // 2, h // 2, window=self.inner, tags="content")
 
 
-def make_btn(parent, text, color, shadow, cmd, small=False):
+class JustifiedLines(tk.Canvas):
+    """固定两行，并把较短的字符间距拉开到同一版心宽度。"""
+
+    def __init__(self, master, lines, font, fill, bg, width=440):
+        self._lines = lines
+        self._font = tkfont.Font(font=font)
+        self._fill = fill
+        self._line_height = self._font.metrics("linespace") + 3
+        super().__init__(
+            master, width=width, height=self._line_height * len(lines),
+            bg=bg, bd=0, highlightthickness=0,
+        )
+        self.bind("<Configure>", self._draw)
+
+    def _draw(self, _event=None):
+        self.delete("all")
+        width = self.winfo_width()
+        if width <= 1:
+            return
+        for row, line in enumerate(self._lines):
+            tokens = re.findall(r"[A-Za-z0-9+._/-]+|.", line)
+            widths = [self._font.measure(token) for token in tokens]
+            gap = 0
+            if len(tokens) > 1:
+                gap = max(0, (width - sum(widths)) / (len(tokens) - 1))
+            x = 0
+            y = row * self._line_height
+            for token, token_width in zip(tokens, widths):
+                self.create_text(
+                    x, y, text=token, anchor="nw",
+                    font=self._font, fill=self._fill,
+                )
+                x += token_width + gap
+
+
+def make_btn(parent, text, color, shadow, cmd, small=False, text_color="#ffffff"):
     """圆角胶囊按钮：Canvas 圆角底 + 白字，悬停加深。small 为小号按钮。"""
     height = 34 if small else 46
     font_size = 10 if small else 12
@@ -175,7 +215,7 @@ def make_btn(parent, text, color, shadow, cmd, small=False):
     radius = 17 if small else 26
     card = RoundCard(parent, radius=radius, fill=color, outline=color,
                      width=width, height=height)
-    inner = tk.Label(card, text=text, bg=color, fg="#ffffff",
+    inner = tk.Label(card, text=text, bg=color, fg=text_color,
                      font=(FONT, font_size, "bold"), cursor="hand2")
     card.place_inner(inner)
     card._color = color
@@ -216,9 +256,10 @@ class App:
             except Exception as e:
                 core.log(f"安装右键 Service 失败: {e!r}")
 
-        root.title(f"手机语音输入 → 电脑 v{core.APP_VERSION}")
+        root.title("声连（电脑端）")
         root.configure(bg=BG)
         root.resizable(False, False)
+        root.geometry("390x844")
 
         self.clip_auto = tk.BooleanVar(value=True)
         self.phone_auto = tk.BooleanVar(
@@ -237,144 +278,113 @@ class App:
 
     # ---------- 界面 ----------
     def _build_ui(self):
-        f = tk.Frame(self.root, bg=BG, padx=30, pady=22)
+        f = tk.Frame(self.root, bg=BG, padx=18, pady=16)
         f.pack(fill="both", expand=True)
 
-        # 标题（两行，无图标）
-        tk.Label(f, text="手机语音，电脑同步", bg=BG, fg="#ff7bac",
-                 font=(FONT, 26, "bold")).pack()
-        tk.Label(f, text="电脑复制，手机粘贴", bg=BG, fg="#ff7bac",
-                 font=(FONT, 26, "bold")).pack(pady=(0, 8))
+        brand = tk.Frame(f, bg=BG)
+        brand.pack(pady=(0, 8))
+        tk.Label(
+            brand, text="声连", bg=BG, fg=FG, font=(FONT, 29, "bold")
+        ).pack(side="left")
+        tk.Label(
+            brand, text="（电脑端）", bg=BG, fg=PINK, font=(FONT, 23, "bold")
+        ).pack(side="left", anchor="s", pady=(0, 3))
+        tk.Frame(f, bg=LINE, height=1).pack(fill="x", pady=(0, 10))
 
-        # 二维码白卡片（圆角 + 粉色粗边框）
-        qr_card = RoundCard(f, radius=38, fill=CARD, outline=CARD_BD,
-                            width=320, height=246)
-        qr_card.pack(pady=(6, 0))
+        steps = tk.Frame(f, bg=BG)
+        steps.pack(fill="x")
+        for column in range(2):
+            steps.grid_columnconfigure(column, weight=1, uniform="step-column")
+        for row in range(2):
+            steps.grid_rowconfigure(row, weight=1, uniform="step-row")
+        self._build_step(
+            steps, 0, 0, "1", "网络",
+            "手机和电脑连接同一个网络。电脑用网线也可以，"
+            "只要与手机 Wi-Fi 接在同一个路由器。",
+        )
+        self._build_step(
+            steps, 0, 1, "2", "连接",
+            "打开手机相机或微信，扫描下方二维码，"
+            "点开扫描结果即可打开手机的声连界面。",
+        )
+        self._build_step(
+            steps, 1, 0, "3", "准备",
+            "下载安装豆包输入法，并打开完全访问权限。",
+        )
+        self._build_step(
+            steps, 1, 1, "4", "输入",
+            "鼠标先在电脑目标输入框点一下，然后在手机声连输入框里"
+            "开始语音输入。口说发送，结束输入。",
+        )
+
+        make_btn(
+            f, "连接和授权问题", BLUE_SOFT, "#dbeafb",
+            self.open_help, small=True, text_color=BLUE_BD,
+        ).pack(pady=(10, 0))
+
+        # 二维码放在最后，作为唯一的主连接入口
+        qr_card = RoundCard(
+            f, radius=28, fill=CARD, outline=LINE, width=220, height=220
+        )
+        qr_card.pack(pady=(13, 0))
         qr_inner = tk.Frame(qr_card, bg=CARD)
         self.qr_label = tk.Label(qr_inner, bg=CARD)
-        self.qr_label.pack(padx=16, pady=12)
+        self.qr_label.pack(padx=10, pady=10)
         qr_card.place_inner(qr_inner)
         _diag("9a 开始生成二维码…")
         self._update_qr()
         _diag("9b 二维码完成")
 
-        # 提示：用手机相机扫二维码（“相机”加大加粗），下面跟豆包建议
-        tip_row = tk.Frame(f, bg=BG)
-        tip_row.pack(pady=(10, 0))
-        tk.Label(tip_row, text="用手机", bg=BG, fg=MUTED,
-                 font=(FONT, 12)).pack(side="left")
-        tk.Label(tip_row, text="相机", bg=BG, fg="#ff7bac",
-                 font=(FONT, 16, "bold")).pack(side="left")
-        tk.Label(tip_row, text="扫二维码，语音直接打到电脑上 🐰",
-                 bg=BG, fg=MUTED, font=(FONT, 12)).pack(side="left")
-        tk.Label(f, text="💡 建议使用豆包输入法语音输入", bg=BG, fg="#c99700",
-                 font=(FONT, 12)).pack(pady=(3, 0))
-
-        # 地址区：两个等大黄按钮（主 + 备用）+ Windows 完整网址
-        self.addr_row = tk.Frame(f, bg=BG)
-        self.addr_row.pack(fill="x", pady=(0, 4))
-        self._fill_addr_buttons()
-
-        row2 = RoundCard(f, radius=26, fill=YELLOW_BG, outline=YELLOW_BD,
-                         height=48)
-        row2.pack(fill="x", pady=(2, 0))
-        r2_inner = tk.Frame(row2, bg=YELLOW_BG)
-        tk.Label(r2_inner, text="🪟", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 12)).pack(side="left", padx=(10, 5))
-        self.url_label = tk.Label(r2_inner, text=self.url, bg=YELLOW_BG,
-                                  fg=YELLOW_TX, font=("Menlo", 10, "bold"),
-                                  cursor="hand2")
-        self.url_label.pack(side="left")
-        self.url_label.bind("<Button-1>", self.copy_url)
-        tk.Label(r2_inner, text="复制", bg=YELLOW_BG, fg=YELLOW_TX,
-                 font=(FONT, 9), cursor="hand2").pack(side="right", padx=(0, 10))
-        row2.place_inner(r2_inner)
-
-        # 授权状态 + 设置授权按钮（放同一行）
-        auth_row = tk.Frame(f, bg=BG)
-        auth_row.pack(pady=(12, 2))
-        self.status_label = tk.Label(auth_row, text="", bg=BG, font=(FONT, 12))
-        self.status_label.pack(side="left")
-        if not IS_WINDOWS:
-            make_btn(auth_row, "🍬 设置授权", PINK, PINK_BD,
-                     self.open_settings, small=True).pack(side="left", padx=(10, 0))
+        self.status_label = tk.Label(
+            f, text="", bg="#f3faef", fg=GREEN,
+            font=(FONT, 10), padx=10, pady=4, cursor="hand2",
+        )
+        self.status_label.pack(pady=(8, 0))
+        self.status_label.bind("<Button-1>", lambda _e: self.open_help())
         self.update_status()
 
-        # 两个功能分区：一眼看懂两个方向
-        self._build_feature_row(
-            f,
-            "🎤 手机语音 → 电脑",
-            "手机用豆包输入法语音说话，文字自动到电脑光标处",
-            self.phone_auto,
-            "立即同步到电脑",
-            self.sync_to_computer_now,
+        footer_actions = tk.Frame(f, bg=BG)
+        footer_actions.pack(side="bottom", pady=(8, 0))
+        make_btn(
+            footer_actions, "隐藏", BLUE_SOFT, "#dbeafb",
+            self.hide_window, small=True, text_color=BLUE_BD,
+        ).pack(side="left", padx=(0, 7))
+        make_btn(
+            footer_actions, "退出", "#f0e8ef", "#e2d5e2", self.on_close,
+            small=True, text_color=MUTED,
+        ).pack(side="left")
+
+    @staticmethod
+    def _build_step(parent, row, column, number, title, text,
+                    action=None, action_cmd=None):
+        card = RoundCard(
+            parent, radius=20, fill=CARD, outline=LINE,
+            width=169, height=185, bg=BG,
         )
-        self._build_feature_row(
-            f,
-            "📋 电脑复制 → 手机",
-            "电脑复制/右键选中，文字自动同步到手机剪贴板",
-            self.clip_auto,
-            "立即同步到手机",
-            self.sync_clipboard_now,
-        )
-
-        # 解放双手：粘贴成功后自动回车（微信里自动发送）
-        enter_row = tk.Frame(f, bg=BG)
-        enter_row.pack(fill="x", pady=(2, 0))
-        tk.Checkbutton(enter_row, text="🎁 说完自动回车（微信里自动发送）",
-                       variable=self.auto_enter, bg=BG, fg=FG, font=(FONT, 10),
-                       activebackground=BG, selectcolor=CARD, highlightthickness=0,
-                       bd=0).pack(side="left")
-
-        tip_txt = (
-            "手机和电脑连同一个 WiFi；打不开就在 Windows 防火墙放行本程序"
-            if IS_WINDOWS
-            else "手机和电脑连同一个 WiFi 就行啦"
-        )
-        tk.Label(f, text=tip_txt, bg=BG, fg=MUTED, font=(FONT, 10)
-                 ).pack(pady=(8, 0))
-        if IS_WINDOWS:
-            make_btn(f, "🛡️ 手机连不上？点我一键放行防火墙", YELLOW_BG, YELLOW_BD,
-                     self.open_firewall, small=True).pack(pady=(6, 0))
-        tk.Label(f, text=f"版本 v{core.APP_VERSION}", bg=BG, fg=MUTED,
-                 font=(FONT, 9)).pack(pady=(3, 0))
-
-        if not IS_WINDOWS and self._not_in_apps_dir():
-            tk.Label(f, text="😿 从临时位置运行：请把 App 移到“应用程序”文件夹",
-                     bg=BG, fg=RED, font=(FONT, 10)).pack(pady=(5, 0))
-
-        # Windows 常见问题：没拿到局域网 IP（虚拟网卡/VPN 干扰）时给醒目提示
-        if self.ips == ["127.0.0.1"]:
-            self._net_warn = tk.Label(
-                f,
-                text="😿 没找到局域网 IP：请检查电脑网络（WiFi/网线），手机才能连上",
-                bg=BG, fg=RED, font=(FONT, 10),
-            )
-            self._net_warn.pack(pady=(5, 0))
-
-        # 退出放最下面，小巧低调
-        make_btn(f, "👋 退出", MUTED, "#84769a", self.on_close,
-                 small=True).pack(pady=(12, 0))
-
-    def _build_feature_row(self, parent, title, hint, var, btn_text, cmd):
-        """功能分区卡：标题 + 用法说明 + 自动同步勾选 + 立即同步按钮。"""
-        card = RoundCard(parent, radius=20, fill=CARD, outline=CARD_BD,
-                         width=320, height=98)
-        card.pack(pady=(6, 0))
+        card.grid(row=row, column=column, sticky="nsew", padx=3, pady=3)
         inner = tk.Frame(card, bg=CARD)
-        tk.Label(inner, text=title, bg=CARD, fg="#ff7bac",
-                 font=(FONT, 12, "bold")).pack(anchor="w",
-                                               padx=(14, 0), pady=(7, 0))
-        tk.Label(inner, text=hint, bg=CARD, fg=MUTED,
-                 font=(FONT, 9)).pack(anchor="w", padx=(14, 0))
-        ctrl = tk.Frame(inner, bg=CARD)
-        ctrl.pack(fill="x", padx=(10, 8), pady=(3, 7))
-        tk.Checkbutton(ctrl, text="自动同步", variable=var, bg=CARD, fg=FG,
-                       font=(FONT, 10), activebackground=CARD, selectcolor=CARD,
-                       highlightthickness=0, bd=0).pack(side="left")
-        make_btn(ctrl, btn_text, BLUE, BLUE_BD, cmd, small=True).pack(side="right")
+        heading = tk.Frame(inner, bg=CARD)
+        heading.pack(fill="x", anchor="w")
+        badge = tk.Label(
+            heading, text=number, bg=PINK_SOFT, fg=PINK,
+            font=(FONT, 9, "bold"), width=2,
+        )
+        badge.pack(side="left", padx=(0, 6))
+        tk.Label(
+            heading, text=title, bg=CARD, fg=FG, font=(FONT, 11, "bold"),
+            anchor="w",
+        ).pack(side="left")
+        tk.Label(
+            inner, text=text, bg=CARD, fg=MUTED, font=(FONT, 10),
+            anchor="nw", justify="left", wraplength=132,
+        ).pack(fill="x", pady=(5, 0))
+        if action:
+            make_btn(
+                inner, action, PINK, PINK_BD, action_cmd, small=True
+            ).pack(pady=(7, 0))
+
+        inner.update_idletasks()
         card.place_inner(inner)
-        return card
 
     # ---------- 功能 ----------
     def _update_qr(self):
@@ -382,7 +392,7 @@ class App:
         qr.add_data(self.url)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-        qr_img = qr_img.resize((220, 220), Image.NEAREST)
+        qr_img = qr_img.resize((200, 200), Image.NEAREST)
         self.qr_photo = ImageTk.PhotoImage(qr_img)
         self.qr_label.configure(image=self.qr_photo)
 
@@ -453,11 +463,23 @@ class App:
 
     def update_status(self):
         self._refresh_ips()
-        if check_accessibility():
-            text = "🎉 已就绪，手机扫码就能用！" if IS_WINDOWS else "🌈 已授权，可以直接用啦"
-            self.status_label.config(text=text, fg=GREEN)
+        has_network = self.current_ip != "127.0.0.1"
+        authorized = check_accessibility()
+        if not has_network:
+            self.status_label.config(
+                text="● 连接状态：未找到局域网",
+                fg=RED, bg="#fff3f3",
+            )
+        elif not authorized:
+            self.status_label.config(
+                text="● 连接状态：已联网，待授权",
+                fg="#aa7b3c", bg="#fff8e8",
+            )
         else:
-            self.status_label.config(text="😿 未授权，点右边开启", fg=RED)
+            self.status_label.config(
+                text="● 连接状态：已就绪，扫码即可使用",
+                fg=GREEN, bg="#f3faef",
+            )
         # 手机页可能改过“自动发送”，这里跟着同步
         try:
             val = bool(core.get_settings().get("phone_auto_send", True))
@@ -475,8 +497,6 @@ class App:
         self.ips = ips
         self.current_ip = ips[0]
         self.url = f"http://{self.current_ip}:{core.PORT}/"
-        self.url_label.configure(text=self.url)
-        self._fill_addr_buttons()
         self._update_qr()
         if self._net_warn is not None and self.current_ip != "127.0.0.1":
             self._net_warn.destroy()
@@ -559,6 +579,246 @@ class App:
         else:
             self.status_label.config(text="✅ 已同步到电脑光标处", fg=GREEN)
         self.root.after(2500, self.update_status)
+
+    def open_help(self):
+        """合并显示连接与授权问题，保持主界面简洁。"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("授权与连接问题")
+        dialog.configure(bg=BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.geometry("500x520")
+
+        body = tk.Frame(dialog, bg=BG, padx=26, pady=22)
+        body.pack(fill="both", expand=True)
+        tk.Label(
+            body, text="授权与连接问题", bg=BG, fg=FG,
+            font=(FONT, 21, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            body, text="按顺序检查下面两项，通常即可恢复连接。",
+            bg=BG, fg=MUTED, font=(FONT, 10),
+        ).pack(anchor="w", pady=(4, 14))
+
+        def section(title, color):
+            tk.Label(
+                body, text=title, bg=BG, fg=color,
+                font=(FONT, 12, "bold"),
+            ).pack(anchor="w", pady=(2, 5))
+
+        section("01  连接与网络", BLUE_BD)
+        tk.Label(
+            body,
+            text="手机和电脑连接同一个路由器即可。电脑使用网线、"
+                 "手机使用 Wi-Fi 也可以；访客网络若开启设备隔离，需要关闭隔离。",
+            bg=BG, fg=FG, font=(FONT, 11),
+            justify="left", anchor="w", wraplength=430,
+        ).pack(fill="x")
+
+        if self.current_ip != "127.0.0.1":
+            address_card = RoundCard(
+                body, radius=16, fill=YELLOW_BG, outline=YELLOW_BD, height=44
+            )
+            address_card.pack(fill="x", pady=(8, 0))
+            address_inner = tk.Frame(address_card, bg=YELLOW_BG)
+            tk.Label(
+                address_inner, text=self.url, bg=YELLOW_BG, fg=YELLOW_TX,
+                font=("Menlo", 11, "bold"),
+            ).pack(side="left", padx=(14, 0))
+            address_card.place_inner(address_inner)
+        else:
+            tk.Label(
+                body, text="未找到局域网地址，请检查电脑与路由器的连接。",
+                bg=BG, fg=RED, font=(FONT, 10),
+            ).pack(anchor="w", pady=(8, 0))
+
+        tk.Frame(body, bg=LINE, height=1).pack(fill="x", pady=14)
+        section("02  系统授权", PINK)
+        if IS_WINDOWS:
+            auth_text = (
+                "1. Windows 询问网络权限时，勾选“专用网络”并允许。\n"
+                "2. 如果手机仍打不开，点下方“放行防火墙”。\n"
+                "3. 系统弹出管理员确认时，请选择“是”。"
+            )
+        else:
+            auth_text = (
+                "1. 打开“系统设置 → 隐私与安全性 → 辅助功能”。\n"
+                "2. 勾选“声连”；没有的话，请添加当前 App。\n"
+                "3. 完全退出声连后重新打开。\n\n"
+                "仍无效时，请先把 App 移到“应用程序”文件夹，再重新授权。"
+            )
+        tk.Label(
+            body, text=auth_text, bg=BG, fg=FG, font=(FONT, 11),
+            justify="left", anchor="w", wraplength=430,
+        ).pack(fill="x")
+
+        feedback = tk.Label(body, text="", bg=BG, fg=GREEN, font=(FONT, 10))
+        feedback.pack(anchor="w", pady=(11, 0))
+        actions = tk.Frame(body, bg=BG)
+        actions.pack(fill="x", pady=(5, 0))
+
+        if self.current_ip != "127.0.0.1":
+            def copy_address():
+                self.root.clipboard_clear()
+                self.root.clipboard_append(self.url)
+                feedback.config(text="地址已复制")
+
+            make_btn(
+                actions, "复制地址", YELLOW_BG, YELLOW_BD, copy_address,
+                text_color=YELLOW_TX,
+            ).pack(side="left", padx=(0, 6))
+        if IS_WINDOWS:
+            make_btn(
+                actions, "放行防火墙", BLUE, BLUE_BD, self.open_firewall
+            ).pack(side="left", padx=(0, 6))
+        else:
+            make_btn(
+                actions, "打开授权设置", PINK, PINK_BD, self.open_settings
+            ).pack(side="left", padx=(0, 6))
+        make_btn(
+            actions, "关闭", "#f0e8ef", "#e2d5e2", dialog.destroy,
+            text_color=MUTED,
+        ).pack(side="right")
+
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_rooty() + 82
+        dialog.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+        dialog.grab_set()
+
+    def hide_window(self):
+        """收起主窗口，后台服务继续运行。"""
+        self.root.iconify()
+
+    def open_connection_help(self):
+        """在独立弹窗中提供手动地址和网络排查。"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("连接问题")
+        dialog.configure(bg=BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+
+        body = tk.Frame(dialog, bg=BG, padx=24, pady=20)
+        body.pack(fill="both", expand=True)
+        tk.Label(
+            body, text="连接问题", bg=BG, fg=FG,
+            font=(FONT, 21, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            body,
+            text="电脑用网线、手机用 Wi-Fi 也可以，只要二者连接同一个路由器。"
+                 "如果二维码扫不出来，可手动输入下面的地址。",
+            bg=BG, fg=MUTED, font=(FONT, 11),
+            justify="left", anchor="w", wraplength=410,
+        ).pack(fill="x", pady=(7, 14))
+
+        if self.current_ip != "127.0.0.1":
+            address_card = RoundCard(
+                body, radius=17, fill=YELLOW_BG, outline=YELLOW_BD, height=46
+            )
+            address_card.pack(fill="x")
+            address_inner = tk.Frame(address_card, bg=YELLOW_BG)
+            tk.Label(
+                address_inner, text=self.url, bg=YELLOW_BG, fg=YELLOW_TX,
+                font=("Menlo", 11, "bold"),
+            ).pack(side="left", padx=(14, 0))
+            address_card.place_inner(address_inner)
+
+            if len(self.ips) > 1:
+                tk.Label(
+                    body,
+                    text="备用地址：" + "　".join(
+                        f"{ip}:{core.PORT}" for ip in self.ips[1:]
+                    ),
+                    bg=BG, fg=MUTED, font=(FONT, 9),
+                    justify="left", anchor="w", wraplength=410,
+                ).pack(fill="x", pady=(6, 0))
+        else:
+            tk.Label(
+                body, text="当前没有找到局域网地址，请检查电脑与路由器的连接。",
+                bg=BG, fg=RED, font=(FONT, 11),
+                justify="left", anchor="w", wraplength=410,
+            ).pack(fill="x")
+
+        feedback = tk.Label(body, text="", bg=BG, fg=GREEN, font=(FONT, 10))
+        feedback.pack(fill="x", pady=(8, 0))
+        actions = tk.Frame(body, bg=BG)
+        actions.pack(pady=(8, 0))
+
+        if self.current_ip != "127.0.0.1":
+            def copy_address():
+                self.root.clipboard_clear()
+                self.root.clipboard_append(self.url)
+                feedback.config(text="地址已复制")
+
+            make_btn(
+                actions, "复制地址", YELLOW_BG, YELLOW_BD, copy_address,
+                text_color=YELLOW_TX,
+            ).pack(side="left", padx=5)
+        if IS_WINDOWS:
+            make_btn(
+                actions, "放行防火墙", BLUE, BLUE_BD, self.open_firewall
+            ).pack(side="left", padx=5)
+        make_btn(
+            actions, "关闭", "#f0e8ef", "#e2d5e2", dialog.destroy,
+            text_color=MUTED,
+        ).pack(side="left", padx=5)
+
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_rooty() + 90
+        dialog.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+        dialog.grab_set()
+
+    def open_auth_help(self):
+        """在独立弹窗中显示授权问题，不占用主界面。"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("授权问题解决办法")
+        dialog.configure(bg=BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+
+        body = tk.Frame(dialog, bg=BG, padx=24, pady=20)
+        body.pack(fill="both", expand=True)
+        tk.Label(
+            body, text="授权问题解决办法", bg=BG, fg="#ff6fa9",
+            font=(FONT, 20, "bold"),
+        ).pack(pady=(0, 12))
+
+        if IS_WINDOWS:
+            help_text = (
+                "1. 当 Windows 询问网络权限时，勾选“专用网络”并允许。\n\n"
+                "2. 如果手机仍打不开，点下方“一键放行防火墙”。\n\n"
+                "3. 系统弹出管理员确认时，请选择“是”。"
+            )
+        else:
+            help_text = (
+                "1. 打开“系统设置 → 隐私与安全性 → 辅助功能”。\n\n"
+                "2. 勾选“声连”；如果没有，请添加当前 App。\n\n"
+                "3. 完全退出声连后重新打开。\n\n"
+                "若仍无效，请先把 App 移到“应用程序”文件夹，再重新授权。"
+            )
+        tk.Label(
+            body, text=help_text, bg=BG, fg=FG, font=(FONT, 12),
+            justify="left", anchor="w", wraplength=400,
+        ).pack(fill="x")
+
+        actions = tk.Frame(body, bg=BG)
+        actions.pack(pady=(18, 0))
+        if IS_WINDOWS:
+            make_btn(actions, "一键放行防火墙", YELLOW_BG, YELLOW_BD,
+                     self.open_firewall).pack(side="left", padx=5)
+        else:
+            make_btn(actions, "打开系统设置", PINK, PINK_BD,
+                     self.open_settings).pack(side="left", padx=5)
+        make_btn(actions, "关闭", MUTED, "#84769a",
+                 dialog.destroy).pack(side="left", padx=5)
+
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_rooty() + 80
+        dialog.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+        dialog.grab_set()
 
     def open_settings(self):
         subprocess.run(

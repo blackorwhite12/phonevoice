@@ -5,135 +5,230 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#ffe9f1">
-<title>声连 · Vision Pro</title>
+<meta name="theme-color" content="#fff8fb">
+<title>声连（Vision Pro）</title>
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;padding:18px 16px 24px;min-height:100vh;display:flex;flex-direction:column;
-       font-family:-apple-system,"PingFang SC","Wawati SC",sans-serif;color:#5b4a6b;
-       background:linear-gradient(165deg,#ffe9f1 0%,#e8f4ff 55%,#f3e8ff 100%)}
-  h1{font-size:22px;color:#ff7bac;margin:6px 0;text-shadow:0 2px 0 rgba(255,255,255,.7)}
-  .sub{font-size:14px;color:#8b7ba0;margin-bottom:12px;line-height:1.6}
-  textarea{flex:1;min-height:200px;font-size:18px;line-height:1.6;background:rgba(255,255,255,.95);
-           color:#5b4a6b;border:3px solid #ffb6d5;border-radius:22px;padding:16px;resize:none;outline:none;
-           box-shadow:0 8px 24px rgba(255,150,190,.25)}
-  textarea:focus{border-color:#ff8fc0}
-  textarea::placeholder{color:#cdb9dc}
-  button{margin-top:14px;padding:16px;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;border:0;
-         border-radius:999px;background:linear-gradient(135deg,#ff9ecb,#ff6fb0);
-         box-shadow:0 6px 0 #e05694,0 12px 24px rgba(255,110,175,.35)}
-  button:active{transform:translateY(3px);box-shadow:0 2px 0 #e05694}
-  #msg{margin-top:10px;font-size:15px;color:#ff7bac;min-height:22px}
-  .hint{font-size:13px;color:#9b87ac;margin-top:14px;line-height:1.7}
-  .hint b{color:#7a6a8c}
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: max(18px, env(safe-area-inset-top)) 16px
+      calc(24px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    color: #403548;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(255, 181, 209, .36), transparent 28%),
+      radial-gradient(circle at 92% 76%, rgba(155, 201, 255, .26), transparent 32%),
+      linear-gradient(168deg, #fff9fc 0%, #f8fbff 52%, #fbf7ff 100%);
+  }
+  .app { width: 100%; max-width: 520px; margin: 0 auto; }
+  h1 {
+    margin: 2px 0 7px;
+    color: #403548;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: .5px;
+  }
+  h1 span { color: #eb5e92; font-size: .78em; font-weight: 700; }
+  .tagline {
+    margin: 0 0 9px;
+    color: #8d7e94;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .status {
+    width: fit-content;
+    margin: 0 auto 14px;
+    padding: 5px 11px;
+    color: #557b9f;
+    background: #f4f9ff;
+    border: 1px solid #d6e6f8;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .status::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    background: #72a9e7;
+    border-radius: 50%;
+    vertical-align: 1px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 230px;
+    padding: 17px;
+    color: #403548;
+    background: rgba(255,255,255,.9);
+    border: 2px solid #f3bfd2;
+    border-radius: 24px;
+    outline: none;
+    resize: none;
+    font: 18px/1.6 inherit;
+    box-shadow: 0 12px 32px rgba(195, 118, 149, .12);
+  }
+  textarea:focus { border-color: #e982aa; }
+  textarea::placeholder { color: #ad9fb4; }
+  button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 15px;
+    color: #fff;
+    background: linear-gradient(145deg, #f589b2, #e9588d);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 6px 16px rgba(218, 75, 129, .22);
+    font: 800 18px/1.2 inherit;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  button:active { transform: translateY(2px); }
+  button:focus-visible { outline: 2px solid #6e9ddf; outline-offset: 3px; }
+  .status-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    margin-top: 10px;
+    padding: 8px 13px;
+    color: #b9547d;
+    background: #fff6f9;
+    border: 2px solid #f3c5d6;
+    border-radius: 15px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .status-box::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    background: #e86e9f;
+    border-radius: 50%;
+  }
+  .guide {
+    margin-top: 16px;
+    padding: 15px 16px;
+    color: #6f6378;
+    background: rgba(255,255,255,.7);
+    border: 1px solid #ece1e9;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+  .guide b { color: #4d4370; }
+  .guide .divider {
+    height: 1px;
+    margin: 10px 0;
+    background: #eee3ea;
+  }
+  .ver {
+    margin-top: auto;
+    padding-top: 24px;
+    color: #b3a7b8;
+    font-size: 11px;
+    text-align: center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
-  <h1>🎤 声连 · Vision Pro</h1>
-  <div class="sub">用豆包输入法说话 → 点一下「发送」（直接复制）→ 去 Vision Pro 长捏粘贴。键盘不会掉，可以接着说。</div>
-  <textarea id="input" placeholder="点这里，用豆包输入法说话 ✨" autofocus></textarea>
-  <button id="send">✈️ 发送（复制到剪贴板）</button>
-  <div id="msg"></div>
-  <div class="hint">
-    <b>怎么用：</b><br>
-    ① 点一下输入框（键盘出来）→ 用豆包语音说话；<br>
-    ② 点「<b>发送</b>」→ 文字进剪贴板（<b>页面不跳走、键盘不掉</b>）；<br>
-    ③ 到 Vision Pro 输入框：<b>长捏 → 粘贴</b>；<br>
-    ④ 回到本页接着说话即可。<br>
-    <br>
-    <b>前提：</b>两台设备同一 Apple ID、都开「接力」，蓝牙与 Wi‑Fi 打开（通用剪贴板）。<br>
-    <b>不行时</b>：会自动退回"快捷指令"方式（需要手机里有名为「声连」的快捷指令）。
-  </div>
-<script>
-  var SHORTCUT = "声连";
-  var SEND_WORD = "发送";
-  var input = document.getElementById('input');
-  var msg = document.getElementById('msg');
+<div class="app">
+  <h1>声连<span>（Vision Pro）</span></h1>
+  <div class="tagline">在手机上说话，复制后到 Vision Pro 粘贴</div>
+  <div class="status">通用剪贴板模式</div>
 
-  function stripSendWord(t){
-    return t.replace(new RegExp(SEND_WORD + "\\s*[。．.!！?？]*$"), "");
+  <textarea id="input"
+    placeholder="点这里，用豆包输入法说话"
+    autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+  <button id="send" type="button">发送并复制</button>
+  <div id="msg" class="status-box" role="status" aria-live="polite">发送状态：等待语音输入…</div>
+
+  <div class="guide">
+    <b>使用步骤</b><br>
+    ① 点输入框，用豆包语音输入；<br>
+    ② 点“发送并复制”，文字进入 iPhone 剪贴板；<br>
+    ③ 到 Vision Pro 输入框，长捏后选择“粘贴”。
+    <div class="divider"></div>
+    <b>前提</b><br>
+    两台设备登录同一 Apple ID，并打开接力、蓝牙和 Wi‑Fi。
+  </div>
+  <div class="ver">声连 v1.4.10</div>
+</div>
+
+<script>
+  const SHORTCUT = '声连';
+  const SEND_WORD = '发送';
+  const input = document.getElementById('input');
+  const msg = document.getElementById('msg');
+  let lastSent = {text: '', at: 0};
+
+  function stripSendWord(text) {
+    return text.replace(new RegExp(SEND_WORD + '\\s*[。．.!！?？]*$'), '');
   }
 
-  function trimAll(s){ return s.replace(/^\s+|\s+$/g, ""); }
-
-  // 把输入框里的文字复制到剪贴板 —— 不离开本页，所以键盘不会掉
-  function copyNow(){
-    var ok = false;
+  async function copyNow() {
+    let copied = false;
     try {
       input.focus();
-      input.setSelectionRange(0, input.value.length);
-      ok = document.execCommand('copy');
-    } catch (e) { ok = false; }
-    if (!ok) {
-      try { navigator.clipboard.writeText(input.value); ok = true; } catch (e) { ok = false; }
+      input.select();
+      copied = document.execCommand('copy');
+    } catch (e) {}
+    if (!copied && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(input.value);
+        copied = true;
+      } catch (e) {}
     }
-    return ok;
+    return copied;
   }
 
-  // 说「发送」或点「发送」按钮：先"复制"（不跳走）；万一复制不了，才退回快捷指令
-  var lastSent = { text: '', at: 0 };
-  function send(text){
-    var t = trimAll(text != null ? text : input.value);
-    if (!t) return;
-    // 防重复：输入法偶发补发事件，同一句 3 秒内只处理一次
-    var now = Date.now();
-    if (t === lastSent.text && (now - lastSent.at) < 3000) { input.value = ''; return; }
-    lastSent.text = t;
-    lastSent.at = now;
-    input.value = t;
-    if (copyNow()) {
-      input.value = "";
-      msg.textContent = "🎉 已复制到剪贴板，去 Vision Pro 长捏粘贴（键盘没掉，接着说下一句就行）";
+  async function send(text) {
+    const value = String(text != null ? text : input.value).trim();
+    if (!value) return;
+    const now = Date.now();
+    if (value === lastSent.text && now - lastSent.at < 3000) {
+      input.value = '';
+      return;
+    }
+    lastSent = {text: value, at: now};
+    input.value = value;
+
+    if (await copyNow()) {
+      input.value = '';
+      msg.textContent = '发送状态：已复制，请到 Vision Pro 输入框长捏粘贴。';
       input.focus();
       return;
     }
-    input.value = "";
-    var url = "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT)
-            + "&input=text&text=" + encodeURIComponent(t);
-    msg.textContent = "👉 点一下「打开」，就复制到剪贴板了；然后去 Vision Pro 粘贴";
+
+    input.value = '';
+    msg.textContent = '发送状态：正在尝试通过快捷指令复制…';
+    const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(SHORTCUT)
+      + '&input=text&text=' + encodeURIComponent(value);
     window.location.href = url;
   }
-  function check(){
-    var raw = input.value;
-    var body = stripSendWord(raw);
-    if (body !== raw && body.trim()) send(body);
-  }
-  input.addEventListener('compositionend', check);
-  input.addEventListener('input', check);
-  document.getElementById('send').addEventListener('click', function(){ send(); });
 
-  function focusInput(){
-    try { input.focus(); } catch (e) {}
+  function checkTail() {
+    const raw = input.value;
+    const body = stripSendWord(raw).trim();
+    if (body !== raw.trim() && body) send(body);
   }
 
-  // 回到页面后的几秒内：谁让输入框失焦，就立刻抢回来 —— 专门顶住最后那一下"收"
-  var guardUntil = 0;
-  function armGuard(){
-    guardUntil = Date.now() + 6000;
-    focusInput();
-    setTimeout(focusInput, 200);
-    setTimeout(focusInput, 700);
-  }
-  input.addEventListener('blur', function(){
-    if (Date.now() < guardUntil) {
-      setTimeout(focusInput, 0);
-      setTimeout(focusInput, 150);
-    }
-  });
-  window.addEventListener('pageshow', armGuard);
-  window.addEventListener('load', armGuard);
-  window.addEventListener('focus', armGuard);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) armGuard(); });
-
-  // iOS 必须靠"点击"才会给键盘；那就让你点页面任意空白处都能把光标放进输入框
-  document.addEventListener('touchend', function(e){
-    var t = e.target;
-    if (t === input) return;
-    if (t && t.closest && t.closest('button')) return;
-    focusInput();
-  }, {passive:true});
-
-  armGuard();
+  input.addEventListener('compositionend', checkTail);
+  input.addEventListener('input', checkTail);
+  document.getElementById('send').addEventListener('click', () => send());
+  input.focus();
 </script>
 </body>
 </html>
