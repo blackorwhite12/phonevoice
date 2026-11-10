@@ -1,15 +1,15 @@
 # 项目进度：手机语音输入 → 电脑
 
-> 最后更新：2026-11-03（v1.4.10）
+> 最后更新：2026-11-10（v1.4.11）
 
 ## 当前状态
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.10 | ✅ 已构建发布 |
-| Windows x64 | v1.4.10 | ✅ 已构建发布 |
-| Mac（Intel） | v1.4.10 | ✅ 已构建发布 |
-| Vision Pro | v1.4.10 | ✅ 网页版与网页包已发布 |
+| Mac（Apple 芯片） | v1.4.11 | ⏳ 本次发布构建 |
+| Windows x64 | v1.4.11 | ⏳ 本次发布构建 |
+| Mac（Intel） | v1.4.11 | ⏳ 本次发布构建 |
+| Vision Pro | v1.4.11 | ⏳ 本次发布构建 |
 
 ## 功能
 
@@ -37,6 +37,7 @@
   桌面 App：浅色圆润配色、圆体字体、可爱按钮）
 - v1.4.10：三平台发布版，新增四宫格电脑界面、三种发送模式、
   内容编辑、断线重连、刷新恢复与 Vision Pro 网页版
+- v1.4.11：手机输入字号调整为 19px，电脑文字框调整为 18px
 
 ## 关键修复记录
 
@@ -50,7 +51,7 @@
 ## GitHub 发布
 
 - 仓库：https://github.com/blackorwhite12/phonevoice
-- 最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.10
+- 最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.11
 - 本地存档：`releases/v1.2.8/`（Mac zip + Windows exe）
 - 发布新版本：改完代码后执行
   `git add -A && git commit -m "说明" && git tag vX.Y.Z && git push origin HEAD --tags`

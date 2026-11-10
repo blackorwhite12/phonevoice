@@ -1,6 +1,6 @@
 # 手机语音输入 → 电脑 · 交接文档
 
-> 当前版本：v1.4.10（2026-11-03）
+> 当前版本：v1.4.11（2026-11-10）
 > 给新对话用：直接说“打开 /Users/awa12/Documents/ChatGPT/13.手机语音输入电脑直接显示/HANDOFF.md 继续语音输入项目”
 
 ## 一、项目是什么
@@ -17,12 +17,12 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.10 | ✅ 已构建发布 |
-| Windows x64 | v1.4.10 | ✅ 已构建发布 |
-| Mac（Intel） | v1.4.10 | ✅ 已构建发布 |
-| Vision Pro 网页版 | v1.4.10 | ✅ 已构建发布 |
+| Mac（Apple 芯片） | v1.4.11 | ⏳ 本次发布构建 |
+| Windows x64 | v1.4.11 | ⏳ 本次发布构建 |
+| Mac（Intel） | v1.4.11 | ⏳ 本次发布构建 |
+| Vision Pro 网页版 | v1.4.11 | ⏳ 本次发布构建 |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.10
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.11
 
 ## 三、重要：发布流程新规则（用户明确要求）
 
@@ -62,6 +62,7 @@ git add -A && git commit -m "说明" && git tag v1.4.5 && git push origin HEAD -
   ② Windows 局域网 IP 选择更稳（过滤虚拟网卡/链路本地地址、主网卡排前、自动刷新、无 IP 时红字提示）
 - v1.4.10：四宫格电脑界面、三档语音发送、自动复制/编辑手机端内容、
   断线自动重连、刷新恢复与 Vision Pro 网页版。
+- v1.4.11：手机输入框 19px、电脑文字框 18px，并修复网页字体简写未生效。
 
 ## 五、当前界面布局（v1.4.4）
 
