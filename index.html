@@ -87,7 +87,7 @@
     border-radius: 50%;
   }
   .status-rose {
-    margin: 9px 0 18px; color: #b9547d;
+    margin: 9px 0 6px; color: #b9547d;
     background: #fff6f9; border: 2px solid #f3c5d6;
   }
   .status-rose::before { background: #e86e9f; }
@@ -102,6 +102,19 @@
     background: #f4f9ff; border: 2px solid #cfe3fb;
   }
   .status-blue::before { background: #72a9e7; }
+  .history-button {
+    width: 100%; margin: 0 0 18px; padding: 9px 12px;
+    background: rgba(255,255,255,.76); border-radius: 13px;
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    letter-spacing: 0; cursor: pointer;
+  }
+  .history-button-rose { color: #b9547d; border: 1px solid #f0c5d5; }
+  .history-button-blue {
+    margin: 6px 0 0; color: #557b9f; border: 1px solid #cbdcf0;
+  }
+  .history-button:focus-visible {
+    outline: 2px solid #6e9ddf; outline-offset: 2px;
+  }
   .rx-title {
     display: flex; align-items: center; margin-bottom: 9px;
     color: #497fb8; font-size: 14px; font-weight: 700;
@@ -144,6 +157,57 @@
     margin-top: auto; padding-top: 18px; color: #b3a7b8;
     font-size: 11px; text-align: center;
   }
+  .history-overlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: flex-end; padding: 12px;
+    background: rgba(52, 40, 59, .32);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .history-panel {
+    width: 100%; max-height: 78vh; min-height: 320px;
+    display: flex; flex-direction: column;
+    padding: 16px; background: #fffdfd;
+    border: 2px solid #efd8e2; border-radius: 24px 24px 18px 18px;
+    box-shadow: 0 22px 60px rgba(75, 53, 83, .24);
+  }
+  .history-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px;
+  }
+  .history-title { color: #403548; font-size: 18px; font-weight: 800; }
+  .history-close {
+    width: 34px; height: 34px; margin: 0; padding: 0;
+    color: #806f87; background: #f5eff4; border: 0; border-radius: 50%;
+    box-shadow: none; font-size: 18px; letter-spacing: 0;
+  }
+  .history-search {
+    width: 100%; padding: 10px 12px; margin-bottom: 10px;
+    color: #403548; background: #fff9fc; border: 1px solid #eadbe3;
+    border-radius: 13px; outline: none;
+    font-family: inherit; font-size: 16px; line-height: 1.4;
+  }
+  .history-list { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
+  .history-day { margin: 10px 2px 5px; color: #8d7e94; font-size: 12px; font-weight: 700; }
+  .history-entry {
+    margin-bottom: 7px; padding: 10px 11px;
+    background: #fff9fc; border: 1px solid #f1dfe7; border-radius: 13px;
+  }
+  .history-entry time { color: #ad93a3; font-size: 11px; }
+  .history-entry p {
+    margin: 4px 0 0; color: #4b4052; font-size: 15px;
+    line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .history-empty { padding: 34px 12px; color: #9c8ca4; text-align: center; font-size: 14px; }
+  .history-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding-top: 10px; color: #a394aa; font-size: 11px;
+  }
+  .history-clear {
+    width: auto; margin: 0; padding: 7px 11px;
+    color: #a46f7c; background: #fff2f5; border: 1px solid #f2d4dd;
+    border-radius: 10px; box-shadow: none; font-size: 11px;
+  }
+  body.history-open { overflow: hidden; }
   [hidden] { display: none !important; }
   @media (max-width: 350px) {
     body { padding-left: 10px; padding-right: 10px; }
@@ -171,6 +235,7 @@
   </div>
 </div>
 <div id="msg" class="status-box status-rose" role="status" aria-live="polite">发送状态：等待语音输入…</div>
+<button class="history-button history-button-rose" id="openSentHistory" type="button">查看发送记录</button>
 
 <section class="rx-card" id="rxCard" aria-live="polite">
   <div class="rx-title">从电脑复制过来内容</div>
@@ -186,8 +251,24 @@
   </div>
 </section>
 <div id="rxMsg" class="status-box status-blue" role="status" aria-live="polite">复制状态：等待电脑复制文字…</div>
+<button class="history-button history-button-blue" id="openCopyHistory" type="button">查看复制记录</button>
 
-<div class="ver" id="ver">电脑端版本：正在连接…</div>
+<div class="history-overlay" id="historyOverlay" hidden>
+  <section class="history-panel" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="history-head">
+      <div class="history-title" id="historyTitle">发送记录</div>
+      <button class="history-close" id="closeHistory" type="button" aria-label="关闭">×</button>
+    </div>
+    <input class="history-search" id="historySearch" type="search" placeholder="搜索记录内容">
+    <div class="history-list" id="historyList"></div>
+    <div class="history-foot">
+      <span>仅保存在本机，自动保留最近 7 天</span>
+      <button class="history-clear" id="clearHistory" type="button">清空</button>
+    </div>
+  </section>
+</div>
+
+<div class="ver" id="ver">手机端 v1.4.12 · 电脑端正在连接…</div>
 
 <script>
 const input = document.getElementById('input');
@@ -201,7 +282,22 @@ const rxMsg = document.getElementById('rxMsg');
 const autoCopyButton = document.getElementById('autoCopy');
 const copyNowButton = document.getElementById('copyNow');
 const editReceivedButton = document.getElementById('editReceived');
+const openSentHistory = document.getElementById('openSentHistory');
+const openCopyHistory = document.getElementById('openCopyHistory');
+const historyOverlay = document.getElementById('historyOverlay');
+const historyTitle = document.getElementById('historyTitle');
+const historySearch = document.getElementById('historySearch');
+const historyList = document.getElementById('historyList');
+const closeHistory = document.getElementById('closeHistory');
+const clearHistory = document.getElementById('clearHistory');
 const SEND_WORD = '发送';
+const CLIENT_VERSION = '1.4.12';
+const HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const HISTORY_LIMIT = 200;
+const HISTORY_KEYS = {
+  sent: 'shenglian-history-v1-sent',
+  copied: 'shenglian-history-v1-copied',
+};
 let timer = null;
 let sendMode = 1;
 let lastSentText = '';
@@ -210,6 +306,8 @@ let lastRxId = 0;
 let pendingRxText = '';
 let autoCopy = true;
 let editing = false;
+let activeHistory = 'sent';
+const historyData = {sent: [], copied: []};
 
 try {
   const savedMode = Number(localStorage.getItem('shenglian-send-mode'));
@@ -219,6 +317,137 @@ try {
   if (savedAutoCopy != null) autoCopy = savedAutoCopy === 'true';
   else if (legacyCopyMode != null) autoCopy = legacyCopyMode !== 'manual';
 } catch (e) {}
+
+function pruneHistory(items) {
+  const cutoff = Date.now() - HISTORY_RETENTION_MS;
+  return items
+    .filter((item) => item && Number(item.at) >= cutoff && typeof item.text === 'string')
+    .sort((a, b) => Number(b.at) - Number(a.at))
+    .slice(0, HISTORY_LIMIT);
+}
+
+function loadHistory(kind) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEYS[kind]) || '[]');
+    historyData[kind] = pruneHistory(Array.isArray(saved) ? saved : []);
+  } catch (e) {
+    historyData[kind] = pruneHistory(historyData[kind]);
+  }
+}
+
+function persistHistory(kind) {
+  historyData[kind] = pruneHistory(historyData[kind]);
+  try {
+    localStorage.setItem(HISTORY_KEYS[kind], JSON.stringify(historyData[kind]));
+  } catch (e) {
+    historyData[kind] = historyData[kind].slice(0, 20);
+    try {
+      localStorage.setItem(HISTORY_KEYS[kind], JSON.stringify(historyData[kind]));
+    } catch (ignored) {}
+  }
+}
+
+function addHistory(kind, text) {
+  const value = String(text || '').trim();
+  if (!value) return;
+  historyData[kind].unshift({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    at: Date.now(),
+    text: value.slice(0, 20000),
+  });
+  persistHistory(kind);
+  if (!historyOverlay.hidden && activeHistory === kind) renderHistory();
+}
+
+function historyDayKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function historyDayLabel(date) {
+  const today = historyDayKey(new Date());
+  const yesterday = historyDayKey(new Date(Date.now() - 86400000));
+  const key = historyDayKey(date);
+  const label = date.toLocaleDateString('zh-CN', {
+    month: 'long', day: 'numeric', weekday: 'short',
+  });
+  if (key === today) return `今天 · ${label}`;
+  if (key === yesterday) return `昨天 · ${label}`;
+  return label;
+}
+
+function renderHistory() {
+  loadHistory(activeHistory);
+  historyTitle.textContent = activeHistory === 'sent' ? '发送记录' : '复制记录';
+  historyList.replaceChildren();
+  const query = historySearch.value.trim().toLocaleLowerCase();
+  const items = historyData[activeHistory].filter(
+    (item) => !query || item.text.toLocaleLowerCase().includes(query),
+  );
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'history-empty';
+    empty.textContent = query ? '没有找到匹配记录' : '还没有记录';
+    historyList.appendChild(empty);
+    return;
+  }
+  let lastDay = '';
+  items.forEach((item) => {
+    const date = new Date(Number(item.at));
+    const dayKey = historyDayKey(date);
+    if (dayKey !== lastDay) {
+      lastDay = dayKey;
+      const heading = document.createElement('div');
+      heading.className = 'history-day';
+      heading.textContent = historyDayLabel(date);
+      historyList.appendChild(heading);
+    }
+    const entry = document.createElement('article');
+    entry.className = 'history-entry';
+    const time = document.createElement('time');
+    time.dateTime = date.toISOString();
+    time.textContent = date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const body = document.createElement('p');
+    body.textContent = item.text;
+    entry.append(time, body);
+    historyList.appendChild(entry);
+  });
+}
+
+function openHistory(kind) {
+  activeHistory = kind;
+  historySearch.value = '';
+  historyOverlay.hidden = false;
+  document.body.classList.add('history-open');
+  renderHistory();
+  historySearch.focus();
+}
+
+function closeHistoryPanel() {
+  historyOverlay.hidden = true;
+  document.body.classList.remove('history-open');
+}
+
+openSentHistory.addEventListener('click', () => openHistory('sent'));
+openCopyHistory.addEventListener('click', () => openHistory('copied'));
+closeHistory.addEventListener('click', closeHistoryPanel);
+historySearch.addEventListener('input', renderHistory);
+historyOverlay.addEventListener('click', (event) => {
+  if (event.target === historyOverlay) closeHistoryPanel();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !historyOverlay.hidden) closeHistoryPanel();
+});
+clearHistory.addEventListener('click', () => {
+  if (!window.confirm(`确定清空全部${activeHistory === 'sent' ? '发送' : '复制'}记录吗？`)) return;
+  historyData[activeHistory] = [];
+  persistHistory(activeHistory);
+  renderHistory();
+});
 
 function setSendMode(mode) {
   sendMode = mode;
@@ -257,6 +486,7 @@ function sendText(forceText, withEnter) {
     body: JSON.stringify({text, enter: Boolean(withEnter)})
   }).then((response) => response.json()).then((data) => {
     if (!data.ok) throw new Error(data.error || '未知错误');
+    if (data.method !== 'duplicate') addHistory('sent', text);
     if (data.method === 'clipboard') {
       msg.textContent = '发送状态：文字已放进电脑剪贴板，请按 Ctrl+V 或 Cmd+V。';
     } else {
@@ -386,6 +616,7 @@ async function copyReceivedText(text, automatic = false) {
 async function showReceived(payload) {
   received.value = payload.text;
   rxCard.hidden = false;
+  addHistory('copied', payload.text);
   saveReceivedCache();
   if (autoCopy) {
     await copyReceivedText(payload.text, true);
@@ -451,6 +682,16 @@ async function pollRx() {
   }
 }
 setInterval(pollRx, 1500);
+loadHistory('sent');
+loadHistory('copied');
+persistHistory('sent');
+persistHistory('copied');
+setInterval(() => {
+  loadHistory('sent');
+  loadHistory('copied');
+  persistHistory('sent');
+  persistHistory('copied');
+}, 60 * 60 * 1000);
 restoreReceivedCache();
 pollRx();
 
@@ -463,9 +704,10 @@ function setConnectionState(connected, version) {
     : '连接状态：已断开，正在自动重连…';
   if (connected) {
     document.getElementById('ver').textContent =
-      '电脑端版本 v' + (version || '?');
+      `手机端 v${CLIENT_VERSION} · 电脑端 v${version || '?'}`;
   } else {
-    document.getElementById('ver').textContent = '电脑端版本：连接已断开';
+    document.getElementById('ver').textContent =
+      `手机端 v${CLIENT_VERSION} · 电脑端未连接`;
   }
 }
 

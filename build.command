@@ -44,4 +44,8 @@ codesign --force --deep --sign - \
   --requirements '=designated => identifier "com.phonevoice.app"' \
   "dist/声连.app"
 
+ditto -c -k --sequesterRsrc --keepParent \
+  "dist/声连.app" "dist/PhoneVoice-macos-arm64-v${APP_VERSION}.zip"
+
 echo "打包完成：dist/声连.app"
+echo "安装包：dist/PhoneVoice-macos-arm64-v${APP_VERSION}.zip"

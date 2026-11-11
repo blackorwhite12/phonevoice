@@ -345,12 +345,18 @@ class App:
 
         footer_actions = tk.Frame(f, bg=BG)
         footer_actions.pack(side="bottom", pady=(8, 0))
+        tk.Label(
+            footer_actions, text=f"声连电脑端 v{core.APP_VERSION}",
+            bg=BG, fg=MUTED, font=(FONT, 9),
+        ).pack(pady=(0, 6))
+        footer_buttons = tk.Frame(footer_actions, bg=BG)
+        footer_buttons.pack()
         make_btn(
-            footer_actions, "隐藏", BLUE_SOFT, "#dbeafb",
+            footer_buttons, "隐藏", BLUE_SOFT, "#dbeafb",
             self.hide_window, small=True, text_color=BLUE_BD,
         ).pack(side="left", padx=(0, 7))
         make_btn(
-            footer_actions, "退出", "#f0e8ef", "#e2d5e2", self.on_close,
+            footer_buttons, "退出", "#f0e8ef", "#e2d5e2", self.on_close,
             small=True, text_color=MUTED,
         ).pack(side="left")
 

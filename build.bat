@@ -37,5 +37,8 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo 打包完成：dist\声连.exe
+for /f "usebackq delims=" %%V in (`".venv\Scripts\python.exe" -c "import server; print(server.APP_VERSION)"`) do set "APP_VERSION=%%V"
+move /Y "dist\声连.exe" "dist\PhoneVoice-windows-x64-v%APP_VERSION%.exe" >nul
+
+echo 打包完成：dist\PhoneVoice-windows-x64-v%APP_VERSION%.exe
 pause
