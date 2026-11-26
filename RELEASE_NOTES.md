@@ -1,21 +1,19 @@
-# 声连 v1.4.12
+# 声连 v1.4.13
 
-本次更新统一了安装包版本标识，并让电脑端和手机端都能直接查看版本号。
+本次更新修复手机端粘贴体验，并增加输入内容一键清空。
 
 ## 主要更新
 
-- 所有安装包和网页包文件名包含版本号。
-- 电脑端底部显示声连电脑端版本。
-- 手机端底部同时显示手机端版本和电脑端版本。
-- 手机端新增发送记录和复制记录，按日期时间分块并支持搜索。
-- 历史记录仅保存在本机，自动清理超过 7 天的内容。
+- 修复手机端长按输入框时无法正常调出粘贴菜单的问题。
+- 输入框上方新增“一键清空”按钮。
+- 发送和复制历史继续保留 7 天，并支持搜索。
 
 ## 下载
 
-- Mac（Apple 芯片）：`PhoneVoice-macos-arm64-v1.4.12.zip`
-- Mac（Intel）：`PhoneVoice-macos-x64-v1.4.12.zip`
-- Windows x64：`PhoneVoice-windows-x64-v1.4.12.exe`
-- Vision Pro 网页包：`PhoneVoice-visionpro-web-v1.4.12.zip`
+- Mac（Apple 芯片）：`PhoneVoice-macos-arm64-v1.4.13.zip`
+- Mac（Intel）：`PhoneVoice-macos-x64-v1.4.13.zip`
+- Windows x64：`PhoneVoice-windows-x64-v1.4.13.exe`
+- Vision Pro 网页包：`PhoneVoice-visionpro-web-v1.4.13.zip`
 
 Vision Pro 在线版：https://blackorwhite12.github.io/phonevoice/vp.html
 

@@ -43,20 +43,37 @@
   .status.offline .status-dot { background: #d77a7a; }
   .composer {
     display: grid; grid-template-columns: minmax(0, 1fr) 108px;
-    gap: 10px; padding: 10px;
+    grid-template-rows: 28px minmax(168px, 1fr);
+    gap: 8px 10px; padding: 10px;
     background: rgba(255,255,255,.88); border: 2px solid #f3bfd2;
     border-radius: 25px;
     box-shadow: 0 12px 32px rgba(195, 118, 149, .12);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   #input {
-    width: 100%; min-height: 190px; margin: 0; padding: 10px 8px;
+    grid-column: 1; grid-row: 2;
+    width: 100%; min-height: 168px; margin: 0; padding: 10px 8px;
     color: #403548; background: #fffafc; border: 0; border-radius: 16px;
     font-family: inherit; font-size: 19px; line-height: 1.6;
     resize: none; outline: none;
+    user-select: text; -webkit-user-select: text; -webkit-touch-callout: default;
   }
   #input::placeholder { color: #ad9fb4; }
+  .composer-tools {
+    grid-column: 1; grid-row: 1;
+    display: flex; align-items: center; justify-content: flex-end;
+  }
+  .clear-input {
+    width: auto; margin: 0; padding: 4px 11px;
+    color: #a4637d; background: #fff9fc; border: 1px solid #efcbda;
+    border-radius: 10px; box-shadow: none;
+    font-family: inherit; font-size: 11px; font-weight: 700;
+    letter-spacing: 0; cursor: pointer;
+  }
+  .clear-input:active { transform: translateY(1px); }
+  .clear-input:focus-visible { outline: 2px solid #6e9ddf; outline-offset: 2px; }
   .modes {
+    grid-column: 2; grid-row: 1 / span 2;
     display: flex; flex-direction: column; gap: 7px; padding: 4px;
     background: #fff7fa; border: 1px solid #f2dce5; border-radius: 18px;
   }
@@ -192,7 +209,17 @@
     margin-bottom: 7px; padding: 10px 11px;
     background: #fff9fc; border: 1px solid #f1dfe7; border-radius: 13px;
   }
+  .history-entry-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
   .history-entry time { color: #ad93a3; font-size: 11px; }
+  .history-copy {
+    width: auto; margin: 0; padding: 4px 9px;
+    color: #9d5b76; background: #fff0f5; border: 1px solid #efcbda;
+    border-radius: 9px; box-shadow: none;
+    font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0;
+  }
+  .history-copy:active { transform: translateY(1px); }
   .history-entry p {
     margin: 4px 0 0; color: #4b4052; font-size: 15px;
     line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
@@ -224,6 +251,9 @@
 <div class="status" id="status"><span class="status-dot"></span><span id="connection">连接状态：正在连接电脑…</span></div>
 
 <div class="composer">
+  <div class="composer-tools">
+    <button class="clear-input" id="clearInput" type="button">一键清空</button>
+  </div>
   <textarea id="input"
     placeholder="点这里说话，说完说暗号“发送”，文字自动飞到电脑里并自动回车"
     autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -268,10 +298,11 @@
   </section>
 </div>
 
-<div class="ver" id="ver">手机端 v1.4.12 · 电脑端正在连接…</div>
+<div class="ver" id="ver">手机端 v1.4.13 · 电脑端正在连接…</div>
 
 <script>
 const input = document.getElementById('input');
+const clearInput = document.getElementById('clearInput');
 const modeButtons = [...document.querySelectorAll('.mode')];
 const msg = document.getElementById('msg');
 const connection = document.getElementById('connection');
@@ -291,7 +322,7 @@ const historyList = document.getElementById('historyList');
 const closeHistory = document.getElementById('closeHistory');
 const clearHistory = document.getElementById('clearHistory');
 const SEND_WORD = '发送';
-const CLIENT_VERSION = '1.4.12';
+const CLIENT_VERSION = '1.4.13';
 const HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const HISTORY_LIMIT = 200;
 const HISTORY_KEYS = {
@@ -406,16 +437,51 @@ function renderHistory() {
     }
     const entry = document.createElement('article');
     entry.className = 'history-entry';
+    const entryHead = document.createElement('div');
+    entryHead.className = 'history-entry-head';
     const time = document.createElement('time');
     time.dateTime = date.toISOString();
     time.textContent = date.toLocaleTimeString('zh-CN', {
       hour: '2-digit', minute: '2-digit', second: '2-digit',
     });
+    const copyButton = document.createElement('button');
+    copyButton.className = 'history-copy';
+    copyButton.type = 'button';
+    copyButton.textContent = '复制';
+    copyButton.addEventListener('click', () => copyHistoryText(item.text, copyButton));
+    entryHead.append(time, copyButton);
     const body = document.createElement('p');
     body.textContent = item.text;
-    entry.append(time, body);
+    entry.append(entryHead, body);
     historyList.appendChild(entry);
   });
+}
+
+async function copyHistoryText(text, button) {
+  let copied = false;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (e) {}
+  }
+  if (!copied) {
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.appendChild(helper);
+    helper.select();
+    try { copied = document.execCommand('copy'); } catch (e) {}
+    helper.remove();
+  }
+  button.textContent = copied ? '已复制' : '复制失败';
+  button.disabled = true;
+  setTimeout(() => {
+    button.textContent = '复制';
+    button.disabled = false;
+  }, 1500);
 }
 
 function openHistory(kind) {
@@ -544,6 +610,12 @@ modeButtons.forEach((button) => {
 
 input.addEventListener('compositionend', () => scheduleKeywordCheck(120));
 input.addEventListener('input', () => scheduleKeywordCheck(280));
+clearInput.addEventListener('click', () => {
+  clearTimeout(timer);
+  input.value = '';
+  msg.textContent = '发送状态：已清空输入内容。';
+  input.focus();
+});
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
@@ -662,7 +734,8 @@ received.addEventListener('input', saveReceivedCache);
 received.addEventListener('click', () => {
   if (!editing) copyReceivedText(received.value);
 });
-document.addEventListener('pointerdown', () => {
+document.addEventListener('pointerdown', (event) => {
+  if (event.target.closest('.composer')) return;
   if (pendingRxText && autoCopy && !editing) copyReceivedText(pendingRxText, true);
 }, {capture: true});
 
