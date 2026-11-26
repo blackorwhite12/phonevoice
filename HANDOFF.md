@@ -17,12 +17,12 @@
 
 | 平台 | 版本 | 状态 |
 |---|---|---|
-| Mac（Apple 芯片） | v1.4.13 | ⏳ 本地预览 |
-| Windows x64 | v1.4.13 | ⏳ 待构建 |
-| Mac（Intel） | v1.4.13 | ⏳ 待构建 |
-| Vision Pro 网页版 | v1.4.13 | ⏳ 待构建 |
+| Mac（Apple 芯片） | v1.4.13 | ✅ 已构建发布 |
+| Windows x64 | v1.4.13 | ✅ 已构建发布 |
+| Mac（Intel） | v1.4.13 | ✅ 已构建发布 |
+| Vision Pro 网页版 | v1.4.13 | ✅ 已构建发布 |
 
-最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.12
+最新 Release：https://github.com/blackorwhite12/phonevoice/releases/tag/v1.4.13
 
 ## 三、重要：发布流程新规则（用户明确要求）
 
